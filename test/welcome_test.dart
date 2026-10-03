@@ -15,10 +15,10 @@ void main() {
       ),
     );
     await tester.tap(find.text('open'));
-    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 500));
     expect(find.textContaining('คุณเป็นสมาชิก ส่งอาหารบ้านดุง แล้ว'), findsOneWidget);
     await tester.tap(find.text('OK'));
-    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 500));
     expect(find.byType(WelcomeDialog), findsNothing);
   });
 }

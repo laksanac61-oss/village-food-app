@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../core/api.dart';
 import '../widgets/common.dart';
+import '../widgets/food_animation.dart';
 import 'admin/admin_screen.dart';
 import 'customer/customer_home.dart';
 import 'rider/rider_screen.dart';
@@ -68,10 +69,10 @@ class WelcomeDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => AlertDialog(
-    icon: const Icon(Icons.celebration, size: 48, color: Colors.green),
+    icon: const FoodAnimation(),
     title: const Text('ยินดีต้อนรับ', textAlign: TextAlign.center),
     content: const Text(
-      'คุณเป็นสมาชิก ส่งอาหารบ้านดุง แล้ว\nสามารถสั่งอาหารได้แล้วค่ะ\nทานให้อร่อยทุกเมนูนะคะ 😋',
+      'คุณเป็นสมาชิก ส่งอาหารบ้านดุง แล้ว\nสามารถสั่งอาหารได้แล้วค่ะ\nทานให้อร่อยทุกเมนูนะคะ',
       textAlign: TextAlign.center,
     ),
     actionsAlignment: MainAxisAlignment.center,
