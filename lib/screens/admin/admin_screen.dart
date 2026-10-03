@@ -11,12 +11,14 @@ class AdminScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => DefaultTabController(
-    length: 3,
+    length: 4,
     child: Scaffold(
       appBar: AppBar(
         title: const Text('ผู้ดูแลระบบ'),
         bottom: const TabBar(
+          isScrollable: true,
           tabs: [
+            Tab(text: 'สมาชิก'),
             Tab(text: 'ร้านค้า'),
             Tab(text: 'ไรเดอร์'),
             Tab(text: 'ค่าส่ง'),
@@ -24,9 +26,124 @@ class AdminScreen extends StatelessWidget {
         ),
       ),
       drawer: const AppDrawer(),
-      body: const TabBarView(children: [_Shops(), _Riders(), _Zones()]),
+      body: const TabBarView(children: [_Members(), _Shops(), _Riders(), _Zones()]),
     ),
   );
+}
+
+// ---------------------------------------------------------------- members
+
+/// Everyone who has signed up, newest first, so the admin can spot new shop owners and riders.
+class _Members extends StatefulWidget {
+  const _Members();
+
+  @override
+  State<_Members> createState() => _MembersState();
+}
+
+class _MembersState extends State<_Members> {
+  String _query = '';
+
+  static const _roleLabel = {
+    'customer': 'ลูกค้า',
+    'shop_owner': 'เจ้าของร้าน',
+    'rider': 'ไรเดอร์',
+    'admin': 'แอดมิน',
+  };
+
+  static const _riderLabel = {
+    'pending_approval': 'สมัครไรเดอร์ รออนุมัติ',
+    'approved': 'ไรเดอร์',
+    'suspended': 'ไรเดอร์ (ระงับ)',
+  };
+
+  static String _when(DateTime t) {
+    final d = t.toLocal();
+    String two(int n) => n.toString().padLeft(2, '0');
+    return '${d.day}/${d.month}/${d.year + 543} ${two(d.hour)}:${two(d.minute)}';
+  }
+
+  /// PostgREST returns a one-to-one embed as an object, but older versions return a list.
+  static String? _riderStatus(Object? embed) => switch (embed) {
+    {'status': final String s} => s,
+    [{'status': final String s}, ...] => s,
+    _ => null,
+  };
+
+  @override
+  Widget build(BuildContext context) => Loader<List<Map<String, dynamic>>>(
+    load: Api.members,
+    builder: (context, members, reload) {
+      final q = _query.trim().toLowerCase();
+      final shown = q.isEmpty
+          ? members
+          : members
+                .where(
+                  (m) =>
+                      (m['full_name'] as String? ?? '').toLowerCase().contains(q) ||
+                      (m['phone'] as String? ?? '').contains(
+                        Api.digitsOnly(q).isEmpty ? q : Api.digitsOnly(q),
+                      ),
+                )
+                .toList();
+      final newCount = members
+          .where((m) => DateTime.now().difference(DateTime.parse(m['created_at'])).inHours < 24)
+          .length;
+      return ListView(
+        children: [
+          ListTile(title: Text('สมาชิกทั้งหมด ${members.length} คน · ใหม่วันนี้ $newCount คน')),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: TextField(
+              decoration: const InputDecoration(
+                prefixIcon: Icon(Icons.search),
+                labelText: 'ค้นหาชื่อหรือเบอร์',
+              ),
+              onChanged: (v) => setState(() => _query = v),
+            ),
+          ),
+          for (final m in shown) _tile(context, m, reload),
+        ],
+      );
+    },
+  );
+
+  Widget _tile(BuildContext context, Map<String, dynamic> m, VoidCallback reload) {
+    final created = DateTime.parse(m['created_at']);
+    final isNew = DateTime.now().difference(created).inHours < 24;
+    final rider = _riderStatus(m['riders']);
+    final phone = m['phone'] as String? ?? '';
+    final tags = [
+      if (!(m['role'] == 'rider' && rider != null)) _roleLabel[m['role']] ?? m['role'],
+      if (rider != null && m['role'] != 'admin') _riderLabel[rider],
+    ];
+    return ListTile(
+      leading: CircleAvatar(child: Text((m['full_name'] as String? ?? '?').characters.firstOrNull ?? '?')),
+      title: Row(
+        children: [
+          Flexible(child: Text(m['full_name'] ?? '-', overflow: TextOverflow.ellipsis)),
+          if (isNew) ...[
+            const SizedBox(width: 6),
+            const Chip(label: Text('ใหม่'), visualDensity: VisualDensity.compact),
+          ],
+        ],
+      ),
+      subtitle: Text('$phone · ${tags.join(' · ')}\nสมัคร ${_when(created)}'),
+      isThreeLine: true,
+      trailing: m['role'] == 'customer' && phone.isNotEmpty
+          ? TextButton(
+              onPressed: () async {
+                final ok = await showDialog<bool>(
+                  context: context,
+                  builder: (_) => _AddShop(ownerPhone: phone),
+                );
+                if (ok == true) reload();
+              },
+              child: const Text('ตั้งเป็นร้าน'),
+            )
+          : null,
+    );
+  }
 }
 
 // ---------------------------------------------------------------- shops
@@ -73,14 +190,15 @@ class _Shops extends StatelessWidget {
 
 /// Admin adds a shop for an owner who has already signed up in the app.
 class _AddShop extends StatefulWidget {
-  const _AddShop();
+  const _AddShop({this.ownerPhone});
+  final String? ownerPhone;
 
   @override
   State<_AddShop> createState() => _AddShopState();
 }
 
 class _AddShopState extends State<_AddShop> {
-  final _ownerPhone = TextEditingController();
+  late final _ownerPhone = TextEditingController(text: widget.ownerPhone);
   final _name = TextEditingController();
   final _promptpay = TextEditingController();
 
