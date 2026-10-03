@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../../core/api.dart';
+import '../../core/labels.dart';
 import '../../core/models.dart';
+import '../../widgets/busy.dart';
 import '../../widgets/common.dart';
 import '../home_router.dart';
 import 'shop_menu_admin.dart';
@@ -66,7 +68,9 @@ class ShopHome extends StatelessWidget {
                   actions: [SizedBox.shrink()],
                 )
               else if (menuCount == 0 || !shop.isOpen)
-                _GettingStarted(hasMenu: menuCount > 0, isOpen: shop.isOpen),
+                _GettingStarted(hasMenu: menuCount > 0, isOpen: shop.isOpen)
+              else
+                _BusyBar(shop: shop, onChanged: reload),
               Expanded(
                 child: TabBarView(
                   children: [
@@ -126,4 +130,64 @@ class _GettingStarted extends StatelessWidget {
       ),
     ),
   );
+}
+
+/// Lets an open shop tell customers its deliveries are slow for a while (riders tied up).
+class _BusyBar extends StatelessWidget {
+  const _BusyBar({required this.shop, required this.onChanged});
+  final Shop shop;
+  final VoidCallback onChanged;
+
+  Future<void> _start(BuildContext context) async {
+    final minutes = await showModalBottomSheet<int>(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const ListTile(
+              title: Text('แจ้งลูกค้าว่าไรเดอร์ติดงาน (busy)'),
+              subtitle: Text('ลูกค้าจะเห็นป้ายสีส้ม และเลือกได้ว่าจะรอ ไปรับเอง หรือยกเลิก'),
+            ),
+            for (final m in const [30, 60, 90, 120])
+              ListTile(
+                leading: const Icon(Icons.timer_outlined),
+                title: Text('ประมาณ $m นาที'),
+                onTap: () => Navigator.pop(ctx, m),
+              ),
+          ],
+        ),
+      ),
+    );
+    if (minutes == null || !context.mounted) return;
+    if (await guard(context, () => Api.setShopBusy(shop.id, minutes), done: 'แจ้ง busy แล้ว')) onChanged();
+  }
+
+  Future<void> _stop(BuildContext context) async {
+    if (await guard(context, () => Api.setShopBusy(shop.id, null), done: 'กลับมาส่งปกติแล้ว')) onChanged();
+  }
+
+  @override
+  Widget build(BuildContext context) => shop.isBusy
+      ? MaterialBanner(
+          backgroundColor: Colors.orange.shade50,
+          leading: const Icon(Icons.hourglass_top, color: busyColor),
+          content: Text('กำลังแจ้งลูกค้าว่า busy ถึง ${hhmm(shop.busyUntil!)} น.'),
+          actions: [
+            TextButton(onPressed: () => _start(context), child: const Text('เปลี่ยนเวลา')),
+            FilledButton(onPressed: () => _stop(context), child: const Text('ส่งได้ปกติแล้ว')),
+          ],
+        )
+      : Padding(
+          padding: const EdgeInsets.fromLTRB(8, 8, 8, 0),
+          child: Align(
+            alignment: Alignment.centerRight,
+            child: OutlinedButton.icon(
+              style: OutlinedButton.styleFrom(foregroundColor: Colors.orange.shade800),
+              icon: const Icon(Icons.hourglass_top),
+              label: const Text('ไรเดอร์ติดงาน? แจ้ง busy'),
+              onPressed: () => _start(context),
+            ),
+          ),
+        );
 }

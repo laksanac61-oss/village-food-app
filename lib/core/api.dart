@@ -102,6 +102,16 @@ class Api {
   static Future<void> updateShop(String id, Map<String, dynamic> fields) =>
       _db.from('shops').update(fields).eq('id', id);
 
+  /// Marks the shop busy for [minutes], or clears it when null.
+  static Future<void> setShopBusy(String id, int? minutes) => updateShop(id, {
+    'busy_until': minutes == null
+        ? null
+        : DateTime.now().toUtc().add(Duration(minutes: minutes)).toIso8601String(),
+  });
+
+  /// Approved riders online right now.
+  static Future<int> ridersOnline() async => (await _db.rpc('riders_online')) as int;
+
   static Future<void> createShop(Map<String, dynamic> fields) => _db.from('shops').insert(fields);
 
   /// A member's request to open a shop; stays hidden until the admin approves it.

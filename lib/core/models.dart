@@ -25,7 +25,8 @@ class Shop {
       coverUrl = r['cover_url'],
       openingHours = r['opening_hours'],
       videoUrl = r['video_url'],
-      videoChangesPerDay = r['video_changes_per_day'] ?? 2;
+      videoChangesPerDay = r['video_changes_per_day'] ?? 2,
+      busyUntil = r['busy_until'] == null ? null : DateTime.parse(r['busy_until']).toLocal();
 
   final String id;
   final String ownerId;
@@ -51,6 +52,10 @@ class Shop {
   /// Intro video customers can watch; null when the shop has none.
   final String? videoUrl;
   final int videoChangesPerDay;
+
+  /// The shop said deliveries are slow (riders tied up) until this time.
+  final DateTime? busyUntil;
+  bool get isBusy => busyUntil != null && busyUntil!.isAfter(DateTime.now());
 
   bool get isPending => status == 'pending';
   bool get isRejected => status == 'rejected';

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../core/api.dart';
 import '../../core/labels.dart';
 import '../../core/models.dart';
+import '../../widgets/busy.dart';
 import '../../widgets/common.dart';
 import '../../widgets/video.dart';
 import 'checkout_screen.dart';
@@ -107,12 +108,19 @@ class _ShopHeader extends StatelessWidget {
       if ((shop.openingHours ?? '').isNotEmpty) 'เวลาเปิด ${shop.openingHours}',
       shop.address,
     ].whereType<String>().where((s) => s.isNotEmpty).toList();
-    if (shop.coverUrl == null && details.isEmpty && shop.videoUrl == null) return const SizedBox.shrink();
+    if (shop.coverUrl == null && details.isEmpty && shop.videoUrl == null && !shop.isBusy) {
+      return const SizedBox.shrink();
+    }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         if (shop.coverUrl != null)
           AspectRatio(aspectRatio: 16 / 9, child: NetPhoto(shop.coverUrl!, zoomable: true)),
+        if (shop.isBusy)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: BusyNotice(shop: shop),
+          ),
         if (details.isNotEmpty)
           Padding(padding: const EdgeInsets.fromLTRB(16, 12, 16, 4), child: Text(details.join('\n'))),
         if (shop.videoUrl != null)
