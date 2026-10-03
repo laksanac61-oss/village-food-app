@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:latlong2/latlong.dart';
 
 import '../../core/api.dart';
 import '../../core/labels.dart';
 import '../../core/models.dart';
 import '../../widgets/common.dart';
+import '../../widgets/maps.dart';
 import 'order_detail_screen.dart';
 
 class CheckoutScreen extends StatefulWidget {
@@ -21,6 +23,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   String _deliveryPayment = 'cash';
   DeliveryZone? _zone;
   final _address = TextEditingController();
+  LatLng? _home;
   bool _busy = false;
   late final Future<List<DeliveryZone>> _zones = Api.zones();
 
@@ -30,7 +33,20 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     Api.myProfile().then((p) {
       if (p == null || !mounted || _address.text.isNotEmpty) return;
       _address.text = [p['house_no'], p['soi']].where((s) => (s ?? '').isNotEmpty).join(' ');
+      if (p['home_lat'] != null && p['home_lng'] != null) {
+        setState(() => _home = LatLng((p['home_lat'] as num).toDouble(), (p['home_lng'] as num).toDouble()));
+      }
     });
+  }
+
+  Future<void> _pickHome() async {
+    final p = await Navigator.push<LatLng>(
+      context,
+      MaterialPageRoute(builder: (_) => PinPickerScreen(initial: _home)),
+    );
+    if (p == null) return;
+    setState(() => _home = p);
+    Api.saveHomePin(p.latitude, p.longitude).ignore(); // remembered for next time
   }
 
   double get _food => widget.cart.fold(0, (s, l) => s + l.item.price * l.qty);
@@ -53,6 +69,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         deliveryPayment: _deliveryPayment,
         addressNote: _address.text.trim(),
       );
+      if (_fulfillment == 'delivery' && _home != null) {
+        await Api.setDropoff(id, _home!.latitude, _home!.longitude);
+      }
     });
     if (!mounted) return;
     setState(() => _busy = false);
@@ -115,6 +134,15 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             TextField(
               controller: _address,
               decoration: const InputDecoration(labelText: 'บ้านเลขที่ / ซอย / จุดสังเกต'),
+            ),
+            const SizedBox(height: 8),
+            if (_home != null) OrderMap(dropoff: _home, height: 160),
+            OutlinedButton.icon(
+              icon: const Icon(Icons.location_on),
+              label: Text(
+                _home == null ? 'ปักหมุดบ้านบนแผนที่ (ช่วยให้ไรเดอร์หาบ้านเจอ)' : 'เปลี่ยนหมุดบ้าน',
+              ),
+              onPressed: _pickHome,
             ),
             const SizedBox(height: 12),
             const Text('จ่ายค่าส่งให้ไรเดอร์'),

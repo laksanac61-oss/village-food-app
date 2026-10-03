@@ -69,6 +69,11 @@ class Order {
       foodSlipPath = r['food_slip_path'],
       deliveryPaymentMethod = r['delivery_payment_method'],
       addressNote = r['address_note'],
+      dropoffLat = (r['dropoff_lat'] as num?)?.toDouble(),
+      dropoffLng = (r['dropoff_lng'] as num?)?.toDouble(),
+      riderLat = (r['rider_lat'] as num?)?.toDouble(),
+      riderLng = (r['rider_lng'] as num?)?.toDouble(),
+      riderLocAt = r['rider_loc_at'] == null ? null : DateTime.parse(r['rider_loc_at']).toLocal(),
       createdAt = DateTime.parse(r['created_at']).toLocal(),
       items = [
         for (final i in (r['order_items'] as List? ?? const []))
@@ -88,10 +93,20 @@ class Order {
   final String? foodSlipPath;
   final String deliveryPaymentMethod;
   final String? addressNote;
+  final double? dropoffLat;
+  final double? dropoffLng;
+  final double? riderLat;
+  final double? riderLng;
+  final DateTime? riderLocAt;
   final DateTime createdAt;
   final List<OrderLine> items;
 
   bool get isDelivery => fulfillment == 'delivery';
+  bool get hasDropoff => dropoffLat != null && dropoffLng != null;
+  bool get hasRiderLocation => riderLat != null && riderLng != null;
+
+  /// Rider is carrying (or about to carry) the food, so their position matters.
+  bool get isOnTheWay => status == 'ready' || status == 'picked_up' || status == 'delivering';
   bool get isClosed => status == 'completed' || status == 'cancelled';
   String get shortId => id.substring(0, 6).toUpperCase();
 }

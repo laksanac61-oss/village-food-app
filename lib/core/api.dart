@@ -123,6 +123,15 @@ class Api {
     return id as String;
   }
 
+  static Future<void> setDropoff(String orderId, double lat, double lng) =>
+      _db.rpc('set_order_dropoff', params: {'p_order_id': orderId, 'p_lat': lat, 'p_lng': lng});
+
+  static Future<void> updateRiderLocation(String orderId, double lat, double lng) =>
+      _db.rpc('update_rider_location', params: {'p_order_id': orderId, 'p_lat': lat, 'p_lng': lng});
+
+  static Future<void> saveHomePin(double lat, double lng) =>
+      _db.from('profiles').update({'home_lat': lat, 'home_lng': lng}).eq('id', uid!);
+
   static Future<Order> order(String id) async =>
       Order.fromRow(await _db.from('orders').select(_orderSelect).eq('id', id).single());
 
