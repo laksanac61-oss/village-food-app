@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../core/api.dart';
 import '../../core/models.dart';
 import '../../widgets/common.dart';
+import '../../widgets/video.dart';
 import '../../widgets/order_card.dart';
 import '../home_router.dart';
 import 'order_detail_screen.dart';
@@ -72,6 +73,13 @@ class _ShopTile extends StatelessWidget {
         shop.openingHours,
       ].whereType<String>().where((s) => s.isNotEmpty).join(' · '),
     ),
+    trailing: shop.videoUrl == null
+        ? null
+        : IconButton(
+            icon: const Icon(Icons.play_circle, color: Colors.red),
+            tooltip: 'ดูวิดีโอแนะนำร้าน',
+            onPressed: () => showVideo(context, shop.videoUrl!, title: shop.name),
+          ),
     enabled: shop.isOpen,
     onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => ShopMenuScreen(shop: shop))),
   );

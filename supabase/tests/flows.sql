@@ -228,3 +228,57 @@ do $$ begin
   end if;
 end $$;
 \echo ALL EMBED NAME CHECKS PASSED
+
+-- ---------------------------------------------------------------- shop video (0004)
+set role app_user;
+set test.uid = '00000000-0000-0000-0000-00000000000c';
+do $$ begin
+  update shops set video_url = 'https://evil.example/v.mp4' where id = '10000000-0000-0000-0000-000000000002';
+  raise exception 'FAIL: owner set video directly';
+exception when others then
+  if sqlerrm not like 'use set_shop_video%' then raise; end if;
+end $$;
+do $$ begin
+  perform set_shop_video('10000000-0000-0000-0000-000000000002', 'https://evil.example/v.mp4');
+  raise exception 'FAIL: outside video address accepted';
+exception when others then
+  if sqlerrm not like 'invalid video address%' then raise; end if;
+end $$;
+do $$ begin
+  if set_shop_video('10000000-0000-0000-0000-000000000002',
+       'https://x.supabase.co/storage/v1/object/public/videos/00000000-0000-0000-0000-00000000000c/1.mp4') <> 1
+     or set_shop_video('10000000-0000-0000-0000-000000000002',
+       'https://x.supabase.co/storage/v1/object/public/videos/00000000-0000-0000-0000-00000000000c/2.mp4') <> 0 then
+    raise exception 'FAIL: changes left not counted down';
+  end if;
+end $$;
+do $$ begin
+  perform set_shop_video('10000000-0000-0000-0000-000000000002',
+    'https://x.supabase.co/storage/v1/object/public/videos/00000000-0000-0000-0000-00000000000c/3.mp4');
+  raise exception 'FAIL: third change in a day allowed';
+exception when others then
+  if sqlerrm not like 'วันนี้เปลี่ยนวิดีโอครบ 2 ครั้ง%' then raise; end if;
+end $$;
+-- removing does not use up a change, and plain shop edits still work
+select set_shop_video('10000000-0000-0000-0000-000000000002', null);
+update shops set opening_hours = '08:00-14:00' where id = '10000000-0000-0000-0000-000000000002';
+-- another member cannot touch it
+set test.uid = '00000000-0000-0000-0000-00000000000e';
+do $$ begin
+  perform set_shop_video('10000000-0000-0000-0000-000000000002', null);
+  raise exception 'FAIL: other member changed the video';
+exception when others then
+  if sqlerrm not like 'not your shop%' then raise; end if;
+end $$;
+-- admin raises the limit; the owner can change again today
+set test.uid = '00000000-0000-0000-0000-00000000000a';
+update shops set video_changes_per_day = 3 where id = '10000000-0000-0000-0000-000000000002';
+set test.uid = '00000000-0000-0000-0000-00000000000c';
+do $$ begin
+  if set_shop_video('10000000-0000-0000-0000-000000000002',
+       'https://x.supabase.co/storage/v1/object/public/videos/00000000-0000-0000-0000-00000000000c/4.mp4') <> 0
+     or (select video_url from shops where id = '10000000-0000-0000-0000-000000000002') not like '%/4.mp4' then
+    raise exception 'FAIL: raised limit not applied';
+  end if;
+end $$;
+\echo ALL SHOP VIDEO CHECKS PASSED

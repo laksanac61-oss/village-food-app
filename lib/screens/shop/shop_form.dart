@@ -17,7 +17,11 @@ class ShopForm extends StatefulWidget {
     required this.requireDetails,
     required this.submitLabel,
     required this.onSubmit,
+    this.header,
   });
+
+  /// Shown above the form, e.g. the intro video card in shop settings.
+  final Widget? header;
 
   final Shop? shop;
   final String? defaultPhone;
@@ -123,6 +127,7 @@ class _ShopFormState extends State<ShopForm> {
     padding: const EdgeInsets.all(16),
     keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
     children: [
+      ?widget.header,
       _heading('ข้อมูลร้านที่ลูกค้าจะเห็น'),
       TextField(
         controller: _name,

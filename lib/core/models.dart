@@ -23,7 +23,9 @@ class Shop {
       lat = (r['lat'] as num?)?.toDouble(),
       lng = (r['lng'] as num?)?.toDouble(),
       coverUrl = r['cover_url'],
-      openingHours = r['opening_hours'];
+      openingHours = r['opening_hours'],
+      videoUrl = r['video_url'],
+      videoChangesPerDay = r['video_changes_per_day'] ?? 2;
 
   final String id;
   final String ownerId;
@@ -45,6 +47,10 @@ class Shop {
   final double? lng;
   final String? coverUrl;
   final String? openingHours;
+
+  /// Intro video customers can watch; null when the shop has none.
+  final String? videoUrl;
+  final int videoChangesPerDay;
 
   bool get isPending => status == 'pending';
   bool get isRejected => status == 'rejected';

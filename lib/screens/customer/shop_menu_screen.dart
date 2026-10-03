@@ -4,6 +4,7 @@ import '../../core/api.dart';
 import '../../core/labels.dart';
 import '../../core/models.dart';
 import '../../widgets/common.dart';
+import '../../widgets/video.dart';
 import 'checkout_screen.dart';
 
 class ShopMenuScreen extends StatefulWidget {
@@ -106,7 +107,7 @@ class _ShopHeader extends StatelessWidget {
       if ((shop.openingHours ?? '').isNotEmpty) 'เวลาเปิด ${shop.openingHours}',
       shop.address,
     ].whereType<String>().where((s) => s.isNotEmpty).toList();
-    if (shop.coverUrl == null && details.isEmpty) return const SizedBox.shrink();
+    if (shop.coverUrl == null && details.isEmpty && shop.videoUrl == null) return const SizedBox.shrink();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -114,6 +115,14 @@ class _ShopHeader extends StatelessWidget {
           AspectRatio(aspectRatio: 16 / 9, child: NetPhoto(shop.coverUrl!, zoomable: true)),
         if (details.isNotEmpty)
           Padding(padding: const EdgeInsets.fromLTRB(16, 12, 16, 4), child: Text(details.join('\n'))),
+        if (shop.videoUrl != null)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: WatchVideoButton(url: shop.videoUrl!, title: shop.name),
+            ),
+          ),
         const Divider(),
       ],
     );
