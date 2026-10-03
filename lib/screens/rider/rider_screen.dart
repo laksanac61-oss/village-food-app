@@ -1,9 +1,13 @@
 import 'dart:typed_data';
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/api.dart';
 import '../../core/labels.dart';
+import '../../core/location.dart';
 import '../../core/models.dart';
 import '../../core/promptpay.dart';
 import '../../widgets/common.dart';
@@ -66,6 +70,7 @@ class _RiderJobs extends StatelessWidget {
             return ListView(
               children: [
                 ListTile(title: Text('ค่าส่งวันนี้ ${baht(earnedToday)}')),
+                _LocationSharer(orders: active.where((o) => o.isOnTheWay).toList()),
                 if (active.isNotEmpty) const _H('งานของฉัน'),
                 for (final o in active)
                   OrderCard(
@@ -76,6 +81,12 @@ class _RiderJobs extends StatelessWidget {
                       if (o.status == 'delivering') _step(context, reload, o, 'ส่งสำเร็จ', 'completed'),
                       if (o.status == 'accepted' || o.status == 'cooking')
                         const Chip(label: Text('รอร้านทำอาหาร')),
+                      if (o.hasDropoff)
+                        OutlinedButton.icon(
+                          icon: const Icon(Icons.navigation),
+                          label: const Text('นำทางไปบ้านลูกค้า'),
+                          onPressed: () => launchUrl(directionsUrl(o.dropoffLat!, o.dropoffLng!)),
+                        ),
                     ],
                   ),
                 if (online) ...[
@@ -213,4 +224,62 @@ class _RegisterFormState extends State<_RegisterForm> {
       FilledButton(onPressed: _busy ? null : _submit, child: const Text('ส่งใบสมัคร')),
     ],
   );
+}
+
+/// While the rider has food to deliver, sends their GPS position every 15 seconds
+/// so the customer's map can follow them. Works only while this screen stays open.
+class _LocationSharer extends StatefulWidget {
+  const _LocationSharer({required this.orders});
+  final List<Order> orders;
+
+  @override
+  State<_LocationSharer> createState() => _LocationSharerState();
+}
+
+class _LocationSharerState extends State<_LocationSharer> {
+  Timer? _timer;
+  bool _failed = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _timer = Timer.periodic(const Duration(seconds: 15), (_) => _send());
+    _send();
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _send() async {
+    if (widget.orders.isEmpty) return;
+    final here = await currentLocation();
+    if (!mounted) return;
+    if (here == null) {
+      if (!_failed) setState(() => _failed = true);
+      return;
+    }
+    if (_failed) setState(() => _failed = false);
+    for (final o in widget.orders) {
+      // A failed update (e.g. order just completed) is fine to skip; the next tick retries.
+      await Api.updateRiderLocation(o.id, here.latitude, here.longitude).catchError((_) {});
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (widget.orders.isEmpty) return const SizedBox.shrink();
+    return ListTile(
+      leading: Icon(
+        _failed ? Icons.location_off : Icons.my_location,
+        color: _failed ? Colors.red : Colors.green,
+      ),
+      title: Text(
+        _failed ? 'เปิดตำแหน่ง (GPS) ไม่ได้ ลูกค้าจะไม่เห็นคุณบนแผนที่' : 'กำลังแชร์ตำแหน่งให้ลูกค้า',
+      ),
+      subtitle: const Text('เปิดหน้านี้ค้างไว้ระหว่างไปส่ง'),
+    );
+  }
 }

@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:latlong2/latlong.dart';
 
 import '../../core/api.dart';
 import '../../core/labels.dart';
 import '../../core/models.dart';
 import '../../widgets/common.dart';
 import '../../widgets/order_card.dart';
+import '../../widgets/maps.dart';
 import '../../widgets/promptpay_qr.dart';
 
 class OrderDetailScreen extends StatelessWidget {
@@ -37,6 +39,7 @@ class OrderDetailScreen extends StatelessWidget {
           padding: const EdgeInsets.only(bottom: 32),
           children: [
             OrderCard(order: o, title: shop.name),
+            if (o.isDelivery && !o.isClosed) _MapSection(order: o, onChanged: reload),
             if (o.foodPaymentStatus == 'rejected')
               const Padding(
                 padding: EdgeInsets.all(12),
@@ -106,4 +109,55 @@ class OrderDetailScreen extends StatelessWidget {
       },
     ),
   );
+}
+
+class _MapSection extends StatelessWidget {
+  const _MapSection({required this.order, required this.onChanged});
+  final Order order;
+  final VoidCallback onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final o = order;
+    final rider = o.hasRiderLocation && o.isOnTheWay ? LatLng(o.riderLat!, o.riderLng!) : null;
+    final dropoff = o.hasDropoff ? LatLng(o.dropoffLat!, o.dropoffLng!) : null;
+    final age = o.riderLocAt == null ? null : DateTime.now().difference(o.riderLocAt!);
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          OrderMap(dropoff: dropoff, rider: rider),
+          if (rider != null && age != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Text(
+                age.inMinutes >= 2
+                    ? 'ตำแหน่งไรเดอร์ล่าสุดเมื่อ ${age.inMinutes} นาทีที่แล้ว'
+                    : 'ตำแหน่งไรเดอร์อัปเดตสด',
+                style: const TextStyle(color: Colors.grey),
+              ),
+            ),
+          if (rider == null && o.riderId != null && o.isOnTheWay)
+            const Text(
+              'จะเห็นตำแหน่งไรเดอร์เมื่อไรเดอร์เริ่มออกเดินทาง',
+              style: TextStyle(color: Colors.grey),
+            ),
+          if (dropoff == null)
+            OutlinedButton.icon(
+              icon: const Icon(Icons.location_on),
+              label: const Text('ปักหมุดบ้านให้ไรเดอร์'),
+              onPressed: () async {
+                final p = await Navigator.push<LatLng>(
+                  context,
+                  MaterialPageRoute(builder: (_) => const PinPickerScreen()),
+                );
+                if (p == null || !context.mounted) return;
+                if (await guard(context, () => Api.setDropoff(o.id, p.latitude, p.longitude))) onChanged();
+              },
+            ),
+        ],
+      ),
+    );
+  }
 }

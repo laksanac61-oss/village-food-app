@@ -122,3 +122,38 @@ do $$ begin
   end if;
 end $$;
 \echo ALL DB FLOW CHECKS PASSED
+
+-- ---------------------------------------------------------------- map (0002)
+set test.uid = '00000000-0000-0000-0000-00000000000c';
+select place_order('10000000-0000-0000-0000-000000000001',
+  '[{"menu_item_id":"30000000-0000-0000-0000-000000000001","qty":1}]',
+  'delivery', '20000000-0000-0000-0000-000000000001', 'cash', 'cash', 'map test') as mid \gset
+select set_order_dropoff(:'mid', 13.75, 100.5);
+-- another customer cannot move the pin
+set test.uid = '00000000-0000-0000-0000-00000000000b';
+do $$ begin
+  perform set_order_dropoff((select id from orders where address_note = 'map test'), 1, 1);
+  raise exception 'FAIL: non-owner set dropoff';
+exception when others then
+  if sqlerrm not like 'order not found%' then raise; end if;
+end $$;
+select set_order_status(:'mid', 'accepted');
+select set_order_status(:'mid', 'ready');
+-- unassigned rider cannot report location
+set test.uid = '00000000-0000-0000-0000-00000000000d';
+do $$ begin
+  perform update_rider_location((select id from orders where address_note = 'map test'), 13.7, 100.4);
+  raise exception 'FAIL: unassigned rider updated location';
+exception when others then
+  if sqlerrm not like 'not delivering%' then raise; end if;
+end $$;
+select claim_order(:'mid');
+select update_rider_location(:'mid', 13.7, 100.4);
+set test.uid = '00000000-0000-0000-0000-00000000000c';
+do $$ begin
+  if (select rider_lat from orders where address_note = 'map test') <> 13.7
+     or (select dropoff_lat from orders where address_note = 'map test') <> 13.75 then
+    raise exception 'FAIL: map fields not visible to customer';
+  end if;
+end $$;
+\echo ALL MAP CHECKS PASSED
