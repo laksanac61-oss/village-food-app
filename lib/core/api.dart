@@ -15,11 +15,25 @@ class Api {
 
   // ---------------------------------------------------------------- auth
 
-  static Future<void> signIn(String email, String password) =>
-      _db.auth.signInWithPassword(email: email, password: password);
+  /// Members sign up with a phone number. Supabase Auth logs in by email, so a phone number
+  /// becomes `<digits>@phoneLoginDomain`; nothing is ever mailed there (email confirmation is off).
+  static const phoneLoginDomain = 'cozy-melomakarona-cafbc6.netlify.app';
 
-  static Future<void> signUp(String email, String password, String name, String phone) => _db.auth.signUp(
-    email: email,
+  /// Turns what the member typed (a phone number, or an email for older accounts) into the
+  /// login email. Throws [FormatException] when it is neither.
+  static String loginEmail(String phoneOrEmail) {
+    final s = phoneOrEmail.trim().toLowerCase();
+    if (s.contains('@')) return s;
+    final digits = digitsOnly(s);
+    if (digits.length < 9 || digits.length > 10) throw const FormatException('เบอร์โทรไม่ถูกต้อง');
+    return '$digits@$phoneLoginDomain';
+  }
+
+  static Future<void> signIn(String phoneOrEmail, String password) =>
+      _db.auth.signInWithPassword(email: loginEmail(phoneOrEmail), password: password);
+
+  static Future<void> signUp(String phone, String password, String name) => _db.auth.signUp(
+    email: loginEmail(phone),
     password: password,
     data: {'full_name': name, 'phone': digitsOnly(phone)},
   );
