@@ -179,13 +179,19 @@ class _BusyBar extends StatelessWidget {
           ],
         )
       : Padding(
-          padding: const EdgeInsets.fromLTRB(8, 8, 8, 0),
-          child: Align(
-            alignment: Alignment.centerRight,
+          // full width on the left, where it is seen first on any screen size
+          padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+          child: SizedBox(
+            width: double.infinity,
             child: OutlinedButton.icon(
-              style: OutlinedButton.styleFrom(foregroundColor: Colors.orange.shade800),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: Colors.orange.shade800,
+                side: const BorderSide(color: busyColor),
+                alignment: Alignment.centerLeft,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              ),
               icon: const Icon(Icons.hourglass_top),
-              label: const Text('ไรเดอร์ติดงาน? แจ้ง busy'),
+              label: const Text('ไรเดอร์ติดงาน? กดแจ้งลูกค้าว่าร้าน busy'),
               onPressed: () => _start(context),
             ),
           ),
