@@ -1,11 +1,11 @@
 {
-  "name": "สั่งอาหารในหมู่บ้าน",
-  "short_name": "สั่งอาหาร",
+  "name": "ส่งอาหารบ้านดุง",
+  "short_name": "อาหารบ้านดุง",
   "start_url": ".",
   "display": "standalone",
-  "background_color": "#FFFFFF",
-  "theme_color": "#E65100",
-  "description": "สั่งอาหารจากร้านในหมู่บ้าน",
+  "background_color": "#FCFCF2",
+  "theme_color": "#1E8C5A",
+  "description": "สั่งอาหารจากร้านในบ้านดุง ส่งถึงบ้าน",
   "orientation": "portrait-primary",
   "prefer_related_applications": false,
   "icons": [

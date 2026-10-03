@@ -62,13 +62,7 @@ class _AuthScreenState extends State<AuthScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const Icon(Icons.restaurant, size: 64),
-                const SizedBox(height: 8),
-                Text(
-                  'สั่งอาหารในหมู่บ้าน',
-                  textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.headlineSmall,
-                ),
+                Image.asset('assets/images/logo.png', height: 200, semanticLabel: 'ส่งอาหารบ้านดุง'),
                 const SizedBox(height: 24),
                 if (_register)
                   TextField(
