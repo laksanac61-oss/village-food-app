@@ -18,8 +18,14 @@ class Api {
   static Future<void> signIn(String email, String password) =>
       _db.auth.signInWithPassword(email: email, password: password);
 
-  static Future<void> signUp(String email, String password, String name, String phone) =>
-      _db.auth.signUp(email: email, password: password, data: {'full_name': name, 'phone': phone});
+  static Future<void> signUp(String email, String password, String name, String phone) => _db.auth.signUp(
+    email: email,
+    password: password,
+    data: {'full_name': name, 'phone': digitsOnly(phone)},
+  );
+
+  /// Phone numbers are stored and compared as digits only, so "081-234 5678" matches "0812345678".
+  static String digitsOnly(String s) => s.replaceAll(RegExp(r'[^0-9]'), '');
 
   static Future<void> signOut() => _db.auth.signOut();
 
@@ -239,8 +245,12 @@ class Api {
   static Future<String> riderDocUrl(String path) =>
       _db.storage.from('rider-docs').createSignedUrl(path, 3600);
 
-  static Future<List<Map<String, dynamic>>> findProfileByPhone(String phone) =>
-      _db.from('profiles').select().eq('phone', phone);
+  /// Admin only (RLS). Compares digits so numbers saved with dashes or spaces still match.
+  static Future<List<Map<String, dynamic>>> findProfileByPhone(String phone) async {
+    final want = digitsOnly(phone);
+    final rows = await _db.from('profiles').select().not('phone', 'is', null);
+    return rows.where((r) => digitsOnly(r['phone'] as String) == want).toList();
+  }
 
   static Future<void> setRole(String userId, String role) =>
       _db.from('profiles').update({'role': role}).eq('id', userId);
