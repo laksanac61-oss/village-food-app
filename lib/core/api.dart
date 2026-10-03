@@ -1,0 +1,247 @@
+import 'dart:typed_data';
+
+import 'package:supabase_flutter/supabase_flutter.dart';
+
+import 'models.dart';
+
+/// All database and storage calls in one place.
+class Api {
+  Api._();
+
+  static SupabaseClient get _db => Supabase.instance.client;
+  static String? get uid => _db.auth.currentUser?.id;
+
+  static const _orderSelect = '*, order_items(*)';
+
+  // ---------------------------------------------------------------- auth
+
+  static Future<void> signIn(String email, String password) =>
+      _db.auth.signInWithPassword(email: email, password: password);
+
+  static Future<void> signUp(String email, String password, String name, String phone) =>
+      _db.auth.signUp(email: email, password: password, data: {'full_name': name, 'phone': phone});
+
+  static Future<void> signOut() => _db.auth.signOut();
+
+  static Future<Map<String, dynamic>?> myProfile() =>
+      _db.from('profiles').select().eq('id', uid!).maybeSingle();
+
+  static Future<void> updateProfile(Map<String, dynamic> fields) =>
+      _db.from('profiles').update(fields).eq('id', uid!);
+
+  // ---------------------------------------------------------------- shops & menu
+
+  static Future<List<Shop>> openShops() async {
+    final rows = await _db
+        .from('shops')
+        .select()
+        .eq('is_active', true)
+        .order('is_open', ascending: false)
+        .order('name');
+    return rows.map(Shop.fromRow).toList();
+  }
+
+  static Future<List<Shop>> allShops() async {
+    final rows = await _db.from('shops').select().order('name');
+    return rows.map(Shop.fromRow).toList();
+  }
+
+  static Future<Shop?> myShop() async {
+    final row = await _db.from('shops').select().eq('owner_id', uid!).maybeSingle();
+    return row == null ? null : Shop.fromRow(row);
+  }
+
+  static Future<Shop> shop(String id) async =>
+      Shop.fromRow(await _db.from('shops').select().eq('id', id).single());
+
+  static Future<void> updateShop(String id, Map<String, dynamic> fields) =>
+      _db.from('shops').update(fields).eq('id', id);
+
+  static Future<void> createShop(Map<String, dynamic> fields) => _db.from('shops').insert(fields);
+
+  static Future<List<MenuItem>> menu(String shopId) async {
+    final rows = await _db
+        .from('menu_items')
+        .select()
+        .eq('shop_id', shopId)
+        .order('sort_order')
+        .order('name');
+    return rows.map(MenuItem.fromRow).toList();
+  }
+
+  static Future<void> saveMenuItem(String? id, Map<String, dynamic> fields) =>
+      id == null ? _db.from('menu_items').insert(fields) : _db.from('menu_items').update(fields).eq('id', id);
+
+  static Future<void> deleteMenuItem(String id) => _db.from('menu_items').delete().eq('id', id);
+
+  static Future<String> uploadImage(Uint8List bytes) async {
+    final path = '$uid/${DateTime.now().millisecondsSinceEpoch}.jpg';
+    await _db.storage
+        .from('images')
+        .uploadBinary(path, bytes, fileOptions: const FileOptions(contentType: 'image/jpeg'));
+    return _db.storage.from('images').getPublicUrl(path);
+  }
+
+  // ---------------------------------------------------------------- zones
+
+  static Future<List<DeliveryZone>> zones() async {
+    final rows = await _db.from('delivery_zones').select().order('name');
+    return rows.map(DeliveryZone.fromRow).toList();
+  }
+
+  static Future<void> saveZone(String? id, String name, double fee) => id == null
+      ? _db.from('delivery_zones').insert({'name': name, 'fee': fee})
+      : _db.from('delivery_zones').update({'name': name, 'fee': fee}).eq('id', id);
+
+  static Future<void> deleteZone(String id) => _db.from('delivery_zones').delete().eq('id', id);
+
+  // ---------------------------------------------------------------- orders
+
+  static Future<String> placeOrder({
+    required String shopId,
+    required List<CartLine> cart,
+    required String fulfillment,
+    String? zoneId,
+    required String foodPayment,
+    required String deliveryPayment,
+    String? addressNote,
+  }) async {
+    final id = await _db.rpc(
+      'place_order',
+      params: {
+        'p_shop_id': shopId,
+        'p_items': [
+          for (final l in cart) {'menu_item_id': l.item.id, 'qty': l.qty, 'note': l.note},
+        ],
+        'p_fulfillment': fulfillment,
+        'p_zone_id': zoneId,
+        'p_food_payment': foodPayment,
+        'p_delivery_payment': deliveryPayment,
+        'p_address_note': addressNote,
+      },
+    );
+    return id as String;
+  }
+
+  static Future<Order> order(String id) async =>
+      Order.fromRow(await _db.from('orders').select(_orderSelect).eq('id', id).single());
+
+  static Future<List<Order>> myOrders() async {
+    final rows = await _db
+        .from('orders')
+        .select(_orderSelect)
+        .eq('customer_id', uid!)
+        .order('created_at', ascending: false)
+        .limit(50);
+    return rows.map(Order.fromRow).toList();
+  }
+
+  static Future<List<Order>> shopOrders(String shopId) async {
+    final rows = await _db
+        .from('orders')
+        .select(_orderSelect)
+        .eq('shop_id', shopId)
+        .order('created_at', ascending: false)
+        .limit(100);
+    return rows.map(Order.fromRow).toList();
+  }
+
+  /// Unclaimed delivery jobs (RLS only returns them to approved, online riders).
+  static Future<List<Order>> openJobs() async {
+    final rows = await _db
+        .from('orders')
+        .select(_orderSelect)
+        .isFilter('rider_id', null)
+        .eq('fulfillment', 'delivery')
+        .inFilter('status', ['accepted', 'cooking', 'ready'])
+        .order('created_at');
+    return rows.map(Order.fromRow).toList();
+  }
+
+  static Future<List<Order>> myDeliveries() async {
+    final rows = await _db
+        .from('orders')
+        .select(_orderSelect)
+        .eq('rider_id', uid!)
+        .order('created_at', ascending: false)
+        .limit(50);
+    return rows.map(Order.fromRow).toList();
+  }
+
+  /// Fires whenever any order this user can see changes; screens reload on it.
+  static Stream<void> orderChanges() => _db.from('orders').stream(primaryKey: ['id']).map((_) {});
+
+  static Future<void> setStatus(String orderId, String status) =>
+      _db.rpc('set_order_status', params: {'p_order_id': orderId, 'p_status': status});
+
+  static Future<bool> claim(String orderId) async =>
+      await _db.rpc('claim_order', params: {'p_order_id': orderId}) as bool;
+
+  static Future<void> uploadSlip(String orderId, Uint8List bytes) async {
+    final path = '$uid/$orderId-${DateTime.now().millisecondsSinceEpoch}.jpg';
+    await _db.storage
+        .from('slips')
+        .uploadBinary(path, bytes, fileOptions: const FileOptions(contentType: 'image/jpeg'));
+    await _db.rpc('submit_slip', params: {'p_order_id': orderId, 'p_path': path});
+  }
+
+  static Future<String> slipUrl(String path) => _db.storage.from('slips').createSignedUrl(path, 3600);
+
+  static Future<void> reviewPayment(String orderId, bool ok) =>
+      _db.rpc('review_payment', params: {'p_order_id': orderId, 'p_ok': ok});
+
+  // ---------------------------------------------------------------- riders
+
+  static Future<Map<String, dynamic>?> myRider() => _db.from('riders').select().eq('id', uid!).maybeSingle();
+
+  static Future<void> registerRider({
+    required String promptpayId,
+    required String vehicleType,
+    required String plateNo,
+    required Uint8List idCard,
+    required Uint8List photo,
+  }) async {
+    Future<String> up(String name, Uint8List b) async {
+      final path = '$uid/$name.jpg';
+      await _db.storage
+          .from('rider-docs')
+          .uploadBinary(path, b, fileOptions: const FileOptions(contentType: 'image/jpeg', upsert: true));
+      return path;
+    }
+
+    await _db.from('riders').insert({
+      'id': uid,
+      'promptpay_id': promptpayId,
+      'vehicle_type': vehicleType,
+      'plate_no': plateNo,
+      'id_card_image_url': await up('id-card', idCard),
+      'photo_url': await up('photo', photo),
+    });
+  }
+
+  static Future<void> setOnline(bool online) =>
+      _db.from('riders').update({'is_online': online}).eq('id', uid!);
+
+  static Future<Map<String, dynamic>?> riderPublic(String id) =>
+      _db.from('profiles').select('full_name, phone').eq('id', id).maybeSingle();
+
+  static Future<String?> riderPromptPay(String id) async =>
+      (await _db.from('riders').select('promptpay_id').eq('id', id).maybeSingle())?['promptpay_id'];
+
+  // ---------------------------------------------------------------- admin
+
+  static Future<List<Map<String, dynamic>>> riders() =>
+      _db.from('riders').select('*, profiles(full_name, phone)').order('created_at', ascending: false);
+
+  static Future<void> setRiderStatus(String id, String status) =>
+      _db.from('riders').update({'status': status}).eq('id', id);
+
+  static Future<String> riderDocUrl(String path) =>
+      _db.storage.from('rider-docs').createSignedUrl(path, 3600);
+
+  static Future<List<Map<String, dynamic>>> findProfileByPhone(String phone) =>
+      _db.from('profiles').select().eq('phone', phone);
+
+  static Future<void> setRole(String userId, String role) =>
+      _db.from('profiles').update({'role': role}).eq('id', userId);
+}
