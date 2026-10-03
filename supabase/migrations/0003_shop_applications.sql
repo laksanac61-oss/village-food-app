@@ -1,20 +1,25 @@
 -- Members apply to open a shop from the app; the admin reviews and approves.
+-- Safe to run more than once.
 -- Shops the admin created before this migration count as approved.
 
-create type shop_status as enum ('pending', 'approved', 'rejected');
+do $$ begin
+  create type shop_status as enum ('pending', 'approved', 'rejected');
+exception when duplicate_object then null;
+end $$;
 
 alter table shops
-  add column status shop_status not null default 'approved',
-  add column review_note text,            -- admin's reason when rejecting
-  add column category text,               -- type of food, e.g. ก๋วยเตี๋ยว
-  add column address text,                -- house number, soi, landmark
-  add column lat double precision,
-  add column lng double precision,
-  add column cover_url text,              -- storefront photo (image_url stays the logo)
-  add column opening_hours text,
-  add column submitted_at timestamptz;
+  add column if not exists status shop_status not null default 'approved',
+  add column if not exists review_note text,            -- admin's reason when rejecting
+  add column if not exists category text,               -- type of food, e.g. ก๋วยเตี๋ยว
+  add column if not exists address text,                -- house number, soi, landmark
+  add column if not exists lat double precision,
+  add column if not exists lng double precision,
+  add column if not exists cover_url text,              -- storefront photo (image_url stays the logo)
+  add column if not exists opening_hours text,
+  add column if not exists submitted_at timestamptz;
 
 -- A member sends an application: always pending and hidden until approved.
+drop policy if exists "member applies for shop" on shops;
 create policy "member applies for shop" on shops for insert
   with check (owner_id = auth.uid() and status = 'pending' and not is_active and not is_open);
 
@@ -75,3 +80,6 @@ begin
   end if;
 end;
 $$;
+
+-- Make the API see the new columns straight away.
+notify pgrst, 'reload schema';
