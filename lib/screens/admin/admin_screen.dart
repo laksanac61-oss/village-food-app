@@ -94,7 +94,7 @@ class _AddShopState extends State<_AddShop> {
         'owner_id': ownerId,
         'name': _name.text.trim(),
         'promptpay_id': _promptpay.text.trim(),
-        'phone': _ownerPhone.text.trim(),
+        'phone': Api.digitsOnly(_ownerPhone.text),
       });
     }, done: 'เพิ่มร้านแล้ว');
     if (ok && mounted) Navigator.pop(context, true);
