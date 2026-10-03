@@ -39,6 +39,7 @@ class _ShopMenuScreenState extends State<ShopMenuScreen> {
             ? const Empty('ร้านนี้ยังไม่มีเมนู')
             : ListView(
                 children: [
+                  _ShopHeader(widget.shop),
                   for (final m in menu)
                     ListTile(
                       leading: m.imageUrl == null
@@ -88,6 +89,36 @@ class _ShopMenuScreenState extends State<ShopMenuScreen> {
                 ),
               ),
             ),
+    );
+  }
+}
+
+/// Storefront photo and basic details above the menu.
+class _ShopHeader extends StatelessWidget {
+  const _ShopHeader(this.shop);
+  final Shop shop;
+
+  @override
+  Widget build(BuildContext context) {
+    final details = [
+      shop.category,
+      shop.description,
+      if ((shop.openingHours ?? '').isNotEmpty) 'เวลาเปิด ${shop.openingHours}',
+      shop.address,
+    ].whereType<String>().where((s) => s.isNotEmpty).toList();
+    if (shop.coverUrl == null && details.isEmpty) return const SizedBox.shrink();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (shop.coverUrl != null)
+          AspectRatio(
+            aspectRatio: 16 / 9,
+            child: Image.network(shop.coverUrl!, fit: BoxFit.cover),
+          ),
+        if (details.isNotEmpty)
+          Padding(padding: const EdgeInsets.fromLTRB(16, 12, 16, 4), child: Text(details.join('\n'))),
+        const Divider(),
+      ],
     );
   }
 }

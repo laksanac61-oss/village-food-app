@@ -16,6 +16,13 @@ class _AuthScreenState extends State<AuthScreen> {
   final _name = TextEditingController();
   bool _register = false;
   bool _busy = false;
+  String _signupAs = 'customer';
+
+  static const _signupOptions = {
+    'customer': 'ลูกค้า (สั่งอาหาร)',
+    'shop': 'ร้านค้า (ขอเปิดร้านขายอาหาร)',
+    'rider': 'ไรเดอร์ (รับส่งอาหาร)',
+  };
 
   Future<void> _submit() async {
     final messenger = ScaffoldMessenger.of(context);
@@ -27,7 +34,7 @@ class _AuthScreenState extends State<AuthScreen> {
       setState(() => _busy = true);
       try {
         if (_register) {
-          await Api.signUp(_login.text, _password.text, _name.text.trim());
+          await Api.signUp(_login.text, _password.text, _name.text.trim(), signupAs: _signupAs);
         } else {
           await Api.signIn(_login.text, _password.text);
         }
@@ -64,11 +71,21 @@ class _AuthScreenState extends State<AuthScreen> {
               children: [
                 Image.asset('assets/images/logo.png', height: 200, semanticLabel: 'ส่งอาหารบ้านดุง'),
                 const SizedBox(height: 24),
-                if (_register)
+                if (_register) ...[
+                  DropdownButtonFormField<String>(
+                    initialValue: _signupAs,
+                    decoration: const InputDecoration(labelText: 'สมัครเป็น'),
+                    items: [
+                      for (final e in _signupOptions.entries)
+                        DropdownMenuItem(value: e.key, child: Text(e.value)),
+                    ],
+                    onChanged: (v) => setState(() => _signupAs = v ?? 'customer'),
+                  ),
                   TextField(
                     controller: _name,
                     decoration: const InputDecoration(labelText: 'ชื่อ'),
                   ),
+                ],
                 TextField(
                   controller: _login,
                   keyboardType: _register ? TextInputType.phone : TextInputType.text,

@@ -1,8 +1,12 @@
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 
-/// Map center when we know nothing else (Bangkok). Users move the pin from here.
-const fallbackCenter = LatLng(13.7563, 100.5018);
+/// Map center when we know nothing else (Ban Dung, Udon Thani). Users move the pin from here.
+const fallbackCenter = LatLng(17.6995, 103.2602);
+
+/// Google Maps link that shows a place; opens the Maps app on phones.
+Uri placeUrl(double lat, double lng) =>
+    Uri.parse('https://www.google.com/maps/search/?api=1&query=$lat,$lng');
 
 /// Current device position, or null if the user refused or GPS is off.
 Future<LatLng?> currentLocation() async {

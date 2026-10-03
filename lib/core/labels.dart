@@ -21,3 +21,20 @@ const paymentStatusLabel = {
 const paymentMethodLabel = {'promptpay': 'สแกน QR พร้อมเพย์', 'cash': 'เงินสด'};
 
 String baht(double v) => '฿${v == v.roundToDouble() ? v.toStringAsFixed(0) : v.toStringAsFixed(2)}';
+
+/// Food types a shop picks when applying; customers see it under the shop name.
+const shopCategories = [
+  'อาหารตามสั่ง',
+  'ก๋วยเตี๋ยว',
+  'ส้มตำ / อาหารอีสาน',
+  'ข้าวมันไก่ / ข้าวขาหมู / ข้าวหมูแดง',
+  'ปิ้งย่าง / ไก่ทอด / ของทอด',
+  'หมูกระทะ / ชาบู',
+  'อาหารเช้า / โจ๊ก / ปาท่องโก๋',
+  'ขนม / ของหวาน / เบเกอรี่',
+  'กาแฟ / ชา / เครื่องดื่ม',
+  'ผลไม้',
+  'อื่นๆ',
+];
+
+const shopStatusLabel = {'pending': 'รออนุมัติ', 'approved': 'อนุมัติแล้ว', 'rejected': 'ไม่ผ่าน'};

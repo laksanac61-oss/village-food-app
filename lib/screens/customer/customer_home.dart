@@ -68,7 +68,13 @@ class _ShopTile extends StatelessWidget {
       child: shop.imageUrl == null ? const Icon(Icons.restaurant) : null,
     ),
     title: Text(shop.name),
-    subtitle: Text(shop.isOpen ? (shop.description ?? 'เปิดอยู่') : 'ปิดอยู่'),
+    subtitle: Text(
+      [
+        shop.category,
+        shop.isOpen ? 'เปิดอยู่' : 'ปิดอยู่',
+        shop.openingHours,
+      ].whereType<String>().where((s) => s.isNotEmpty).join(' · '),
+    ),
     enabled: shop.isOpen,
     onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => ShopMenuScreen(shop: shop))),
   );

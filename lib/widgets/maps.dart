@@ -19,19 +19,20 @@ Marker _marker(LatLng p, IconData icon, Color color) => Marker(
 
 const _attribution = RichAttributionWidget(attributions: [TextSourceAttribution('© OpenStreetMap')]);
 
-/// Shows the delivery point and, when known, where the rider is now.
+/// Shows the delivery point and, when known, where the rider is now (or a shop's location).
 class OrderMap extends StatelessWidget {
-  const OrderMap({super.key, this.dropoff, this.rider, this.height = 260});
+  const OrderMap({super.key, this.dropoff, this.rider, this.shop, this.height = 260});
 
   final LatLng? dropoff;
   final LatLng? rider;
+  final LatLng? shop;
   final double height;
 
   @override
   Widget build(BuildContext context) {
-    final points = [?dropoff, ?rider];
+    final points = [?dropoff, ?rider, ?shop];
     if (points.isEmpty) return const SizedBox.shrink();
-    final fit = points.length == 2
+    final fit = points.length >= 2
         ? CameraFit.coordinates(coordinates: points, padding: const EdgeInsets.all(48), maxZoom: 17)
         : null;
     return SizedBox(
@@ -48,6 +49,7 @@ class OrderMap extends StatelessWidget {
               markers: [
                 if (dropoff != null) _marker(dropoff!, Icons.home, Colors.red),
                 if (rider != null) _marker(rider!, Icons.delivery_dining, Colors.blue),
+                if (shop != null) _marker(shop!, Icons.storefront, Colors.green.shade800),
               ],
             ),
             _attribution,
@@ -58,10 +60,19 @@ class OrderMap extends StatelessWidget {
   }
 }
 
-/// Full-screen picker: tap or drag the map to place the home pin.
+/// Full-screen picker: tap or drag the map to place the home (or shop) pin.
 class PinPickerScreen extends StatefulWidget {
-  const PinPickerScreen({super.key, this.initial});
+  const PinPickerScreen({
+    super.key,
+    this.initial,
+    this.title = 'ปักหมุดบ้าน',
+    this.hint = 'แตะบนแผนที่ตรงบ้านของคุณ',
+    this.icon = Icons.home,
+  });
   final LatLng? initial;
+  final String title;
+  final String hint;
+  final IconData icon;
 
   @override
   State<PinPickerScreen> createState() => _PinPickerScreenState();
@@ -95,7 +106,7 @@ class _PinPickerScreenState extends State<PinPickerScreen> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('ปักหมุดบ้าน')),
+    appBar: AppBar(title: Text(widget.title)),
     body: Stack(
       children: [
         FlutterMap(
@@ -107,7 +118,7 @@ class _PinPickerScreenState extends State<PinPickerScreen> {
           ),
           children: [
             _tiles(),
-            if (_pin != null) MarkerLayer(markers: [_marker(_pin!, Icons.home, Colors.red)]),
+            if (_pin != null) MarkerLayer(markers: [_marker(_pin!, widget.icon, Colors.red)]),
             _attribution,
           ],
         ),
@@ -118,7 +129,7 @@ class _PinPickerScreenState extends State<PinPickerScreen> {
           child: Card(
             child: Padding(
               padding: const EdgeInsets.all(10),
-              child: Text(_locating ? 'กำลังหาตำแหน่งของคุณ...' : 'แตะบนแผนที่ตรงบ้านของคุณ'),
+              child: Text(_locating ? 'กำลังหาตำแหน่งของคุณ...' : widget.hint),
             ),
           ),
         ),
