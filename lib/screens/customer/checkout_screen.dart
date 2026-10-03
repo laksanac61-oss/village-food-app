@@ -4,6 +4,7 @@ import 'package:latlong2/latlong.dart';
 import '../../core/api.dart';
 import '../../core/labels.dart';
 import '../../core/models.dart';
+import '../../widgets/busy.dart';
 import '../../widgets/common.dart';
 import '../../widgets/maps.dart';
 import 'order_detail_screen.dart';
@@ -28,11 +29,60 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   late final Future<List<DeliveryZone>> _zones = Api.zones();
   List<SavedAddress> _saved = [];
   SavedAddress? _picked;
+  late Shop _shop = widget.shop;
+  bool _noRiders = false;
 
   @override
   void initState() {
     super.initState();
     _prefill();
+    _checkDelivery();
+  }
+
+  /// Fresh busy flag and rider count: the shop list may have been loaded a while ago.
+  Future<void> _checkDelivery() async {
+    try {
+      final (shop, online) = (await Api.shop(widget.shop.id), await Api.ridersOnline());
+      if (!mounted) return;
+      setState(() {
+        _shop = shop;
+        _noRiders = online == 0;
+      });
+    } catch (_) {} // the warning is a courtesy; ordering still works without it
+  }
+
+  bool get _deliverySlow => _shop.isBusy || _noRiders;
+
+  /// When delivery is slow, the customer chooses to wait, collect the food themselves, or not order.
+  /// Returns true to go ahead with the order as it is.
+  Future<bool> _confirmSlowDelivery() async {
+    final choice = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        icon: const Icon(Icons.hourglass_top, color: busyColor, size: 40),
+        title: const Text('ตอนนี้ส่งช้ากว่าปกติ'),
+        content: Text(busyMessage(_shop, noRiders: _noRiders)),
+        actionsOverflowDirection: VerticalDirection.down,
+        actions: [
+          FilledButton(onPressed: () => Navigator.pop(ctx, 'wait'), child: const Text('รอได้ สั่งเลย')),
+          OutlinedButton(onPressed: () => Navigator.pop(ctx, 'pickup'), child: const Text('ไปรับเองที่ร้าน')),
+          TextButton(onPressed: () => Navigator.pop(ctx, 'cancel'), child: const Text('ยกเลิก')),
+        ],
+      ),
+    );
+    if (!mounted) return false;
+    switch (choice) {
+      case 'wait':
+        return true;
+      case 'pickup':
+        setState(() => _fulfillment = 'pickup');
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('เปลี่ยนเป็นไปรับเองที่ร้านแล้ว ตรวจยอดแล้วกด "สั่งอาหาร" อีกครั้ง')),
+        );
+      case 'cancel':
+        Navigator.pop(context);
+    }
+    return false;
   }
 
   /// Fills in the last delivery address so a returning customer can order straight away;
@@ -80,6 +130,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           .showSnackBar(const SnackBar(content: Text('กรุณาเลือกโซนและใส่ที่อยู่สำหรับจัดส่ง')));
       return;
     }
+    if (_fulfillment == 'delivery' && _deliverySlow && !await _confirmSlowDelivery()) return;
+    if (!mounted) return;
     setState(() => _busy = true);
     late String id;
     final ok = await guard(context, () async {
@@ -141,6 +193,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             onSelectionChanged: (s) => setState(() => _fulfillment = s.first),
           ),
           if (_fulfillment == 'delivery') ...[
+            if (_deliverySlow) BusyNotice(shop: _shop, noRiders: _noRiders),
             if (_saved.isNotEmpty) ...[
               const SizedBox(height: 12),
               const Text('ส่งที่เดิม แตะเพื่อเลือก'),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/api.dart';
 import '../../core/models.dart';
+import '../../widgets/busy.dart';
 import '../../widgets/common.dart';
 import '../../widgets/video.dart';
 import '../../widgets/order_card.dart';
@@ -98,11 +99,16 @@ class _ShopTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) => ListTile(
     leading: LogoAvatar(shop.imageUrl),
-    title: Text(shop.name),
+    title: Row(
+      children: [
+        Flexible(child: Text(shop.name, overflow: TextOverflow.ellipsis)),
+        if (shop.isOpen && shop.isBusy) ...[const SizedBox(width: 6), const BusyTag()],
+      ],
+    ),
     subtitle: Text(
       [
         shop.category,
-        shop.isOpen ? 'เปิดอยู่' : 'ปิดอยู่',
+        shop.isOpen ? (shop.isBusy ? 'เปิดอยู่ · ไรเดอร์ติดงาน ส่งช้า' : 'เปิดอยู่') : 'ปิดอยู่',
         shop.openingHours,
       ].whereType<String>().where((s) => s.isNotEmpty).join(' · '),
     ),

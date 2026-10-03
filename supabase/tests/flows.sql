@@ -282,3 +282,20 @@ do $$ begin
   end if;
 end $$;
 \echo ALL SHOP VIDEO CHECKS PASSED
+
+-- ---------------------------------------------------------------- shop busy (0005)
+set role app_user;
+set test.uid = '00000000-0000-0000-0000-00000000000c';
+update shops set busy_until = now() + interval '30 minutes' where id = '10000000-0000-0000-0000-000000000002';
+set test.uid = '00000000-0000-0000-0000-00000000000e';
+do $$ begin
+  if not exists (select 1 from shops where id = '10000000-0000-0000-0000-000000000002' and busy_until > now()) then
+    raise exception 'FAIL: customers cannot see that the shop is busy';
+  end if;
+  update shops set busy_until = null where id = '10000000-0000-0000-0000-000000000002';
+  if not exists (select 1 from shops where id = '10000000-0000-0000-0000-000000000002' and busy_until is not null) then
+    raise exception 'FAIL: another member cleared the busy flag';
+  end if;
+  if riders_online() < 0 then raise exception 'FAIL: riders_online'; end if;
+end $$;
+\echo ALL SHOP BUSY CHECKS PASSED

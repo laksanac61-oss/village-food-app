@@ -45,3 +45,5 @@ const roleLabel = {'customer': 'ลูกค้า', 'shop_owner': 'ร้าน
 String phoneLabel(String digits) => digits.length == 10
     ? '${digits.substring(0, 3)}-${digits.substring(3, 6)}-${digits.substring(6)}'
     : digits;
+
+String hhmm(DateTime t) => '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
