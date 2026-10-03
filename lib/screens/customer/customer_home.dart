@@ -63,10 +63,7 @@ class _ShopTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => ListTile(
-    leading: CircleAvatar(
-      backgroundImage: shop.imageUrl == null ? null : NetworkImage(shop.imageUrl!),
-      child: shop.imageUrl == null ? const Icon(Icons.restaurant) : null,
-    ),
+    leading: LogoAvatar(shop.imageUrl),
     title: Text(shop.name),
     subtitle: Text(
       [

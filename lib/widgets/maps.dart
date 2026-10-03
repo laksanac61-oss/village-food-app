@@ -20,7 +20,9 @@ Marker _marker(LatLng p, IconData icon, Color color) => Marker(
 const _attribution = RichAttributionWidget(attributions: [TextSourceAttribution('© OpenStreetMap')]);
 
 /// Shows the delivery point and, when known, where the rider is now (or a shop's location).
-class OrderMap extends StatelessWidget {
+///
+/// Starts locked so swiping over it scrolls the page; tap the map to move or zoom it.
+class OrderMap extends StatefulWidget {
   const OrderMap({super.key, this.dropoff, this.rider, this.shop, this.height = 260});
 
   final LatLng? dropoff;
@@ -29,30 +31,74 @@ class OrderMap extends StatelessWidget {
   final double height;
 
   @override
+  State<OrderMap> createState() => _OrderMapState();
+}
+
+class _OrderMapState extends State<OrderMap> {
+  bool _unlocked = false;
+
+  @override
   Widget build(BuildContext context) {
+    final OrderMap(:dropoff, :rider, :shop) = widget;
     final points = [?dropoff, ?rider, ?shop];
     if (points.isEmpty) return const SizedBox.shrink();
     final fit = points.length >= 2
         ? CameraFit.coordinates(coordinates: points, padding: const EdgeInsets.all(48), maxZoom: 17)
         : null;
     return SizedBox(
-      height: height,
+      height: widget.height,
       child: ClipRRect(
         borderRadius: BorderRadius.circular(12),
         child: FlutterMap(
           // Key on the points so the camera re-fits when the rider moves.
           key: ValueKey('${rider?.latitude},${rider?.longitude}'),
-          options: MapOptions(initialCenter: points.first, initialZoom: 16, initialCameraFit: fit),
+          options: MapOptions(
+            initialCenter: points.first,
+            initialZoom: 16,
+            initialCameraFit: fit,
+            interactionOptions: InteractionOptions(
+              flags: _unlocked ? InteractiveFlag.all & ~InteractiveFlag.rotate : InteractiveFlag.none,
+            ),
+          ),
           children: [
             _tiles(),
             MarkerLayer(
               markers: [
-                if (dropoff != null) _marker(dropoff!, Icons.home, Colors.red),
-                if (rider != null) _marker(rider!, Icons.delivery_dining, Colors.blue),
-                if (shop != null) _marker(shop!, Icons.storefront, Colors.green.shade800),
+                if (dropoff != null) _marker(dropoff, Icons.home, Colors.red),
+                if (rider != null) _marker(rider, Icons.delivery_dining, Colors.blue),
+                if (shop != null) _marker(shop, Icons.storefront, Colors.green.shade800),
               ],
             ),
             _attribution,
+            if (_unlocked)
+              Positioned(
+                top: 8,
+                right: 8,
+                child: FilledButton.tonalIcon(
+                  icon: const Icon(Icons.lock, size: 18),
+                  label: const Text('ล็อกแผนที่'),
+                  onPressed: () => setState(() => _unlocked = false),
+                ),
+              )
+            else
+              // Only a tap: drags pass through to the page so it keeps scrolling.
+              Positioned.fill(
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () => setState(() => _unlocked = true),
+                  child: const Align(
+                    alignment: Alignment.topRight,
+                    child: Padding(
+                      padding: EdgeInsets.all(8),
+                      child: Chip(
+                        avatar: Icon(Icons.touch_app, size: 18),
+                        label: Text('แตะเพื่อเลื่อน/ซูมแผนที่'),
+                        visualDensity: VisualDensity.compact,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
           ],
         ),
       ),

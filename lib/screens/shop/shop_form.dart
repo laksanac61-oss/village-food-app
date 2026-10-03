@@ -89,8 +89,8 @@ class _ShopFormState extends State<ShopForm> {
     if (mounted) setState(() => _busy = false);
   }
 
-  Future<void> _pickImage(void Function(String url) set) async {
-    final bytes = await pickPhoto();
+  Future<void> _pickImage(void Function(String url) set, {double maxSide = 1280}) async {
+    final bytes = await pickPhoto(maxSide: maxSide);
     if (bytes == null || !mounted) return;
     await guard(context, () async {
       final url = await Api.uploadImage(bytes);
@@ -121,6 +121,7 @@ class _ShopFormState extends State<ShopForm> {
   @override
   Widget build(BuildContext context) => ListView(
     padding: const EdgeInsets.all(16),
+    keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
     children: [
       _heading('ข้อมูลร้านที่ลูกค้าจะเห็น'),
       TextField(
@@ -152,42 +153,51 @@ class _ShopFormState extends State<ShopForm> {
       _heading('รูปร้าน'),
       Row(
         children: [
-          CircleAvatar(
-            radius: 32,
-            backgroundImage: _logoUrl == null ? null : NetworkImage(_logoUrl!),
-            child: _logoUrl == null ? const Icon(Icons.store) : null,
-          ),
+          LogoAvatar(_logoUrl, radius: 36),
           const SizedBox(width: 8),
           TextButton.icon(
             icon: const Icon(Icons.add_a_photo),
             label: Text(_logoUrl == null ? 'เพิ่มโลโก้หรือรูปอาหาร' : 'เปลี่ยนโลโก้'),
-            onPressed: () => _pickImage((u) => _logoUrl = u),
+            // A logo is shown small, so a smaller file is plenty.
+            onPressed: () => _pickImage((u) => _logoUrl = u, maxSide: 600),
           ),
         ],
       ),
       const SizedBox(height: 8),
-      InkWell(
-        onTap: () => _pickImage((u) => _coverUrl = u),
+      ClipRRect(
         borderRadius: BorderRadius.circular(12),
         child: AspectRatio(
           aspectRatio: 16 / 9,
-          child: Container(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(12),
-              color: Theme.of(context).colorScheme.surfaceContainerHighest,
-              image: _coverUrl == null
-                  ? null
-                  : DecorationImage(image: NetworkImage(_coverUrl!), fit: BoxFit.cover),
-            ),
-            child: _coverUrl == null
-                ? Column(
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              if (_coverUrl == null)
+                ColoredBox(
+                  color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                  child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       const Icon(Icons.add_a_photo, size: 40),
                       Text(widget.requireDetails ? 'แตะเพื่อเพิ่มรูปหน้าร้าน *' : 'แตะเพื่อเพิ่มรูปหน้าร้าน'),
+                      const Text('แนะนำถ่ายแนวนอน ให้เห็นป้ายร้าน', style: TextStyle(fontSize: 12)),
                     ],
-                  )
-                : null,
+                  ),
+                )
+              else
+                NetPhoto(_coverUrl!),
+              Material(
+                type: MaterialType.transparency,
+                child: InkWell(onTap: () => _pickImage((u) => _coverUrl = u)),
+              ),
+              if (_coverUrl != null)
+                const Positioned(
+                  right: 8,
+                  bottom: 8,
+                  child: IgnorePointer(
+                    child: Chip(avatar: Icon(Icons.photo_camera, size: 18), label: Text('เปลี่ยนรูป')),
+                  ),
+                ),
+            ],
           ),
         ),
       ),
