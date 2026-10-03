@@ -12,13 +12,18 @@ import '../../core/models.dart';
 import '../../core/promptpay.dart';
 import '../../widgets/common.dart';
 import '../../widgets/order_card.dart';
+import '../home_router.dart';
 
 class RiderScreen extends StatelessWidget {
-  const RiderScreen({super.key});
+  const RiderScreen({super.key, this.asHome = false});
+
+  /// True when this is the member's first screen (they picked "rider" at sign-up).
+  final bool asHome;
 
   @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(title: const Text('ไรเดอร์')),
+    drawer: asHome ? const AppDrawer() : null,
     body: Loader<Map<String, dynamic>?>(
       load: Api.myRider,
       builder: (context, rider, reload) => switch (rider?['status']) {

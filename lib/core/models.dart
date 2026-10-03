@@ -1,5 +1,7 @@
 // Plain data classes mapped from Supabase rows.
 
+import 'package:latlong2/latlong.dart';
+
 double _num(dynamic v) => v == null ? 0 : (v as num).toDouble();
 
 class Shop {
@@ -13,7 +15,15 @@ class Shop {
       promptpayId = r['promptpay_id'],
       acceptsCash = r['accepts_cash'] ?? true,
       isOpen = r['is_open'] ?? false,
-      isActive = r['is_active'] ?? true;
+      isActive = r['is_active'] ?? true,
+      status = r['status'] ?? 'approved',
+      reviewNote = r['review_note'],
+      category = r['category'],
+      address = r['address'],
+      lat = (r['lat'] as num?)?.toDouble(),
+      lng = (r['lng'] as num?)?.toDouble(),
+      coverUrl = r['cover_url'],
+      openingHours = r['opening_hours'];
 
   final String id;
   final String ownerId;
@@ -25,6 +35,21 @@ class Shop {
   final bool acceptsCash;
   final bool isOpen;
   final bool isActive;
+
+  /// pending / approved / rejected: members apply, the admin reviews.
+  final String status;
+  final String? reviewNote;
+  final String? category;
+  final String? address;
+  final double? lat;
+  final double? lng;
+  final String? coverUrl;
+  final String? openingHours;
+
+  bool get isPending => status == 'pending';
+  bool get isRejected => status == 'rejected';
+  bool get isApproved => status == 'approved';
+  LatLng? get location => lat == null || lng == null ? null : LatLng(lat!, lng!);
 }
 
 class MenuItem {

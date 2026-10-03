@@ -32,11 +32,16 @@ class Api {
   static Future<void> signIn(String phoneOrEmail, String password) =>
       _db.auth.signInWithPassword(email: loginEmail(phoneOrEmail), password: password);
 
-  static Future<void> signUp(String phone, String password, String name) => _db.auth.signUp(
-    email: loginEmail(phone),
-    password: password,
-    data: {'full_name': name, 'phone': digitsOnly(phone)},
-  );
+  /// [signupAs] is what the member picked at sign-up (customer, shop or rider);
+  /// the home screen uses it to open the shop application or rider form first.
+  static Future<void> signUp(String phone, String password, String name, {String signupAs = 'customer'}) =>
+      _db.auth.signUp(
+        email: loginEmail(phone),
+        password: password,
+        data: {'full_name': name, 'phone': digitsOnly(phone), 'signup_as': signupAs},
+      );
+
+  static String get signupAs => _db.auth.currentUser?.userMetadata?['signup_as'] as String? ?? 'customer';
 
   /// Phone numbers are stored and compared as digits only, so "081-234 5678" matches "0812345678".
   static String digitsOnly(String s) => s.replaceAll(RegExp(r'[^0-9]'), '');
@@ -78,6 +83,39 @@ class Api {
       _db.from('shops').update(fields).eq('id', id);
 
   static Future<void> createShop(Map<String, dynamic> fields) => _db.from('shops').insert(fields);
+
+  /// A member's request to open a shop; stays hidden until the admin approves it.
+  static Future<void> applyForShop(Map<String, dynamic> fields) => _db.from('shops').insert({
+    ...fields,
+    'owner_id': uid,
+    'status': 'pending',
+    'is_active': false,
+    'is_open': false,
+    'submitted_at': DateTime.now().toUtc().toIso8601String(),
+  });
+
+  /// Edits a pending application, or sends a rejected one back for review.
+  static Future<void> resubmitShop(String id, Map<String, dynamic> fields) => _db
+      .from('shops')
+      .update({...fields, 'status': 'pending', 'submitted_at': DateTime.now().toUtc().toIso8601String()})
+      .eq('id', id);
+
+  /// Admin only: approve (shop goes live, owner gets the shop screen) or reject with a reason.
+  static Future<void> reviewShop(String id, bool approve, String? note) =>
+      _db.rpc('review_shop', params: {'p_shop_id': id, 'p_approve': approve, 'p_note': note});
+
+  /// A shop with its owner's name and phone, for the admin's review screen.
+  static Future<(Shop, Map<String, dynamic>?)> shopForReview(String id) async {
+    final row = await _db
+        .from('shops')
+        .select('*, profiles!shops_owner_id_fkey(full_name, phone)')
+        .eq('id', id)
+        .single();
+    return (Shop.fromRow(row), row['profiles'] as Map<String, dynamic>?);
+  }
+
+  static Future<int> menuCount(String shopId) async =>
+      (await _db.from('menu_items').select('id').eq('shop_id', shopId)).length;
 
   static Future<List<MenuItem>> menu(String shopId) async {
     final rows = await _db
@@ -278,7 +316,9 @@ class Api {
   /// Everyone who has signed up, newest first, with their rider application if any.
   static Future<List<Map<String, dynamic>>> members() => _db
       .from('profiles')
-      .select('id, full_name, phone, role, created_at, riders(status)')
+      .select(
+        'id, full_name, phone, role, created_at, riders!riders_id_fkey(status), shops!shops_owner_id_fkey(id, status)',
+      )
       .order('created_at', ascending: false)
       .limit(500);
 

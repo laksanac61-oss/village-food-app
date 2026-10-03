@@ -6,16 +6,26 @@ import '../../core/models.dart';
 import '../../widgets/common.dart';
 
 class ShopMenuAdmin extends StatelessWidget {
-  const ShopMenuAdmin({super.key, required this.shop});
+  const ShopMenuAdmin({super.key, required this.shop, this.onFirstItem});
   final Shop shop;
 
-  Future<void> _edit(BuildContext context, VoidCallback reload, [MenuItem? item]) async {
+  /// Called when the first menu item is added, so the shop's getting-started card updates.
+  final VoidCallback? onFirstItem;
+
+  Future<void> _edit(
+    BuildContext context,
+    VoidCallback reload, {
+    MenuItem? item,
+    bool wasEmpty = false,
+  }) async {
     final saved = await showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
       builder: (_) => _MenuForm(shopId: shop.id, item: item),
     );
-    if (saved == true) reload();
+    if (saved != true) return;
+    reload();
+    if (wasEmpty) onFirstItem?.call();
   }
 
   @override
@@ -35,7 +45,7 @@ class ShopMenuAdmin extends StatelessWidget {
                           : Image.network(m.imageUrl!, width: 48, height: 48, fit: BoxFit.cover),
                       title: Text(m.name),
                       subtitle: Text(baht(m.price)),
-                      onTap: () => _edit(context, reload, m),
+                      onTap: () => _edit(context, reload, item: m),
                       trailing: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
@@ -56,7 +66,10 @@ class ShopMenuAdmin extends StatelessWidget {
         Positioned(
           right: 16,
           bottom: 16,
-          child: FloatingActionButton(onPressed: () => _edit(context, reload), child: const Icon(Icons.add)),
+          child: FloatingActionButton(
+            onPressed: () => _edit(context, reload, wasEmpty: menu.isEmpty),
+            child: const Icon(Icons.add),
+          ),
         ),
       ],
     ),

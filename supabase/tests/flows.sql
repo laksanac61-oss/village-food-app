@@ -157,3 +157,74 @@ do $$ begin
   end if;
 end $$;
 \echo ALL MAP CHECKS PASSED
+
+-- ---------------------------------------------------------------- shop applications (0003)
+set test.uid = '00000000-0000-0000-0000-00000000000c';
+-- cannot sneak in an approved or live shop
+do $$ begin
+  insert into shops (owner_id, name, promptpay_id, status, is_active)
+    values (auth.uid(), 'fake', '0812345678', 'approved', true);
+  raise exception 'FAIL: member created a live shop';
+exception when others then
+  if sqlerrm not like '%row-level security%' then raise; end if;
+end $$;
+insert into shops (id, owner_id, name, promptpay_id, status, is_active, category, lat, lng, submitted_at)
+  values ('10000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-00000000000c',
+          'ส้มตำป้าแดง', '0811111111', 'pending', false, 'ส้มตำ / อาหารอีสาน', 16.9, 102.9, now());
+do $$ begin
+  update shops set status = 'approved' where id = '10000000-0000-0000-0000-000000000002';
+  raise exception 'FAIL: member approved own shop';
+exception when others then
+  if sqlerrm not like 'only admin can approve%' then raise; end if;
+end $$;
+do $$ begin
+  update shops set is_open = true where id = '10000000-0000-0000-0000-000000000002';
+  raise exception 'FAIL: pending shop opened';
+exception when others then
+  if sqlerrm not like 'shop is not approved%' then raise; end if;
+end $$;
+do $$ begin
+  perform review_shop('10000000-0000-0000-0000-000000000002', true, null);
+  raise exception 'FAIL: member reviewed a shop';
+exception when others then
+  if sqlerrm not like 'only admin can review%' then raise; end if;
+end $$;
+-- other members cannot see the application
+set test.uid = '00000000-0000-0000-0000-00000000000e';
+do $$ begin
+  if exists (select 1 from shops where id = '10000000-0000-0000-0000-000000000002') then
+    raise exception 'FAIL: pending shop visible to others';
+  end if;
+end $$;
+-- admin rejects with a reason; member fixes and resubmits
+set test.uid = '00000000-0000-0000-0000-00000000000a';
+select review_shop('10000000-0000-0000-0000-000000000002', false, 'ขอรูปหน้าร้านชัดๆ');
+set test.uid = '00000000-0000-0000-0000-00000000000c';
+do $$ begin
+  if (select review_note from shops where id = '10000000-0000-0000-0000-000000000002') <> 'ขอรูปหน้าร้านชัดๆ' then
+    raise exception 'FAIL: member cannot read rejection reason';
+  end if;
+end $$;
+update shops set cover_url = 'new.jpg', status = 'pending' where id = '10000000-0000-0000-0000-000000000002';
+-- admin approves: shop goes live and the member becomes a shop owner
+set test.uid = '00000000-0000-0000-0000-00000000000a';
+select review_shop('10000000-0000-0000-0000-000000000002', true, null);
+set test.uid = '00000000-0000-0000-0000-00000000000c';
+update shops set is_open = true where id = '10000000-0000-0000-0000-000000000002';
+do $$ begin
+  if (select role from profiles where id = auth.uid()) <> 'shop_owner'
+     or not (select is_active and status = 'approved' and review_note is null
+               from shops where id = '10000000-0000-0000-0000-000000000002') then
+    raise exception 'FAIL: approval did not take effect';
+  end if;
+end $$;
+\echo ALL SHOP APPLICATION CHECKS PASSED
+
+-- the app names these foreign keys in its PostgREST embeds (Api.members, Api.shopForReview)
+reset role;
+do $$ begin
+  if (select count(*) from pg_constraint where conname in ('shops_owner_id_fkey', 'riders_id_fkey')) <> 2 then
+    raise exception 'FAIL: foreign key names used by the app changed';
+  end if;
+end $$;
+\echo ALL EMBED NAME CHECKS PASSED

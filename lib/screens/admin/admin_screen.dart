@@ -5,6 +5,7 @@ import '../../core/labels.dart';
 import '../../core/models.dart';
 import '../../widgets/common.dart';
 import '../home_router.dart';
+import 'shop_review.dart';
 
 class AdminScreen extends StatelessWidget {
   const AdminScreen({super.key});
@@ -15,13 +16,25 @@ class AdminScreen extends StatelessWidget {
     child: Scaffold(
       appBar: AppBar(
         title: const Text('ผู้ดูแลระบบ'),
-        bottom: const TabBar(
+        bottom: TabBar(
           isScrollable: true,
           tabs: [
-            Tab(text: 'สมาชิก'),
-            Tab(text: 'ร้านค้า'),
-            Tab(text: 'ไรเดอร์'),
-            Tab(text: 'ค่าส่ง'),
+            const Tab(text: 'สมาชิก'),
+            Tab(
+              child: FutureBuilder<List<Shop>>(
+                future: Api.allShops(),
+                builder: (context, snap) {
+                  final waiting = snap.data?.where((s) => s.isPending).length ?? 0;
+                  return Badge(
+                    isLabelVisible: waiting > 0,
+                    label: Text('$waiting'),
+                    child: const Padding(padding: EdgeInsets.only(right: 8), child: Text('ร้านค้า')),
+                  );
+                },
+              ),
+            ),
+            const Tab(text: 'ไรเดอร์'),
+            const Tab(text: 'ค่าส่ง'),
           ],
         ),
       ),
@@ -112,10 +125,14 @@ class _MembersState extends State<_Members> {
     final created = DateTime.parse(m['created_at']);
     final isNew = DateTime.now().difference(created).inHours < 24;
     final rider = _riderStatus(m['riders']);
+    final shops = m['shops'] is List ? m['shops'] as List : const [];
+    final application = shops.isEmpty ? null : shops.first as Map<String, dynamic>;
     final phone = m['phone'] as String? ?? '';
     final tags = [
       if (!(m['role'] == 'rider' && rider != null)) _roleLabel[m['role']] ?? m['role'],
       if (rider != null && m['role'] != 'admin') _riderLabel[rider],
+      if (application != null && application['status'] != 'approved')
+        'ขอเปิดร้าน (${shopStatusLabel[application['status']]})',
     ];
     return ListTile(
       leading: CircleAvatar(child: Text((m['full_name'] as String? ?? '?').characters.firstOrNull ?? '?')),
@@ -130,7 +147,16 @@ class _MembersState extends State<_Members> {
       ),
       subtitle: Text('$phone · ${tags.join(' · ')}\nสมัคร ${_when(created)}'),
       isThreeLine: true,
-      trailing: m['role'] == 'customer' && phone.isNotEmpty
+      onTap: application == null
+          ? null
+          : () async {
+              final changed = await Navigator.push<bool>(
+                context,
+                MaterialPageRoute(builder: (_) => ShopReviewScreen(shopId: application['id'])),
+              );
+              if (changed == true) reload();
+            },
+      trailing: m['role'] == 'customer' && phone.isNotEmpty && application == null
           ? TextButton(
               onPressed: () async {
                 final ok = await showDialog<bool>(
@@ -159,8 +185,23 @@ class _Shops extends StatelessWidget {
         ListView(
           padding: const EdgeInsets.only(bottom: 88),
           children: [
-            ListTile(title: Text('ร้านทั้งหมด ${shops.length} ร้าน')),
-            for (final s in shops)
+            if (shops.any((s) => s.isPending)) ...[
+              ListTile(
+                title: Text(
+                  'คำขอเปิดร้าน รออนุมัติ ${shops.where((s) => s.isPending).length} ร้าน',
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+              ),
+              for (final s in shops.where((s) => s.isPending)) _RequestTile(s, reload),
+              const Divider(),
+            ],
+            if (shops.any((s) => s.isRejected)) ...[
+              const ListTile(title: Text('ส่งกลับให้แก้ไข')),
+              for (final s in shops.where((s) => s.isRejected)) _RequestTile(s, reload),
+              const Divider(),
+            ],
+            ListTile(title: Text('ร้านที่อนุมัติแล้ว ${shops.where((s) => s.isApproved).length} ร้าน')),
+            for (final s in shops.where((s) => s.isApproved))
               SwitchListTile(
                 title: Text(s.name),
                 subtitle: Text('พร้อมเพย์ ${s.promptpayId} · ${s.isOpen ? 'เปิดอยู่' : 'ปิดอยู่'}'),
@@ -185,6 +226,31 @@ class _Shops extends StatelessWidget {
         ),
       ],
     ),
+  );
+}
+
+/// A shop application in the admin's list; tap to see everything and approve or reject.
+class _RequestTile extends StatelessWidget {
+  const _RequestTile(this.shop, this.reload);
+  final Shop shop;
+  final VoidCallback reload;
+
+  @override
+  Widget build(BuildContext context) => ListTile(
+    leading: CircleAvatar(
+      backgroundImage: shop.imageUrl == null ? null : NetworkImage(shop.imageUrl!),
+      child: shop.imageUrl == null ? const Icon(Icons.store) : null,
+    ),
+    title: Text(shop.name),
+    subtitle: Text('${shop.category ?? '-'} · ${shopStatusLabel[shop.status]}'),
+    trailing: const Icon(Icons.chevron_right),
+    onTap: () async {
+      final changed = await Navigator.push<bool>(
+        context,
+        MaterialPageRoute(builder: (_) => ShopReviewScreen(shopId: shop.id)),
+      );
+      if (changed == true) reload();
+    },
   );
 }
 
