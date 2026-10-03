@@ -275,6 +275,13 @@ class Api {
     return rows.where((r) => digitsOnly(r['phone'] as String) == want).toList();
   }
 
+  /// Everyone who has signed up, newest first, with their rider application if any.
+  static Future<List<Map<String, dynamic>>> members() => _db
+      .from('profiles')
+      .select('id, full_name, phone, role, created_at, riders(status)')
+      .order('created_at', ascending: false)
+      .limit(500);
+
   static Future<void> setRole(String userId, String role) =>
       _db.from('profiles').update({'role': role}).eq('id', userId);
 }
