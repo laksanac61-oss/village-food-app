@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../core/api.dart';
-import '../widgets/common.dart';
 
 class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key});
@@ -11,23 +11,44 @@ class AuthScreen extends StatefulWidget {
 }
 
 class _AuthScreenState extends State<AuthScreen> {
-  final _email = TextEditingController();
+  final _login = TextEditingController();
   final _password = TextEditingController();
   final _name = TextEditingController();
-  final _phone = TextEditingController();
   bool _register = false;
   bool _busy = false;
 
   Future<void> _submit() async {
-    setState(() => _busy = true);
-    await guard(context, () async {
-      if (_register) {
-        await Api.signUp(_email.text.trim(), _password.text, _name.text.trim(), _phone.text.trim());
-      } else {
-        await Api.signIn(_email.text.trim(), _password.text);
+    final messenger = ScaffoldMessenger.of(context);
+    String? error;
+    if (_register && _name.text.trim().isEmpty) error = 'กรุณากรอกชื่อ';
+    if (_register && _login.text.contains('@')) error = 'กรุณากรอกเบอร์โทร';
+    if (_register && _password.text.length < 6) error = 'รหัสผ่านต้องมีอย่างน้อย 6 ตัว';
+    if (error == null) {
+      setState(() => _busy = true);
+      try {
+        if (_register) {
+          await Api.signUp(_login.text, _password.text, _name.text.trim());
+        } else {
+          await Api.signIn(_login.text, _password.text);
+        }
+      } on FormatException catch (e) {
+        error = e.message;
+      } on AuthException catch (e) {
+        error = _authError(e.message);
+      } catch (e) {
+        error = 'เกิดข้อผิดพลาด: $e';
       }
-    });
-    if (mounted) setState(() => _busy = false);
+      if (mounted) setState(() => _busy = false);
+    }
+    if (error != null) messenger.showSnackBar(SnackBar(content: Text(error)));
+  }
+
+  String _authError(String message) {
+    final m = message.toLowerCase();
+    if (m.contains('invalid login')) return 'เบอร์โทรหรือรหัสผ่านไม่ถูกต้อง';
+    if (m.contains('already registered')) return 'เบอร์นี้สมัครไว้แล้ว กรุณาเข้าสู่ระบบ';
+    if (m.contains('password')) return 'รหัสผ่านต้องมีอย่างน้อย 6 ตัว';
+    return 'เกิดข้อผิดพลาด: $message';
   }
 
   @override
@@ -49,21 +70,15 @@ class _AuthScreenState extends State<AuthScreen> {
                   style: Theme.of(context).textTheme.headlineSmall,
                 ),
                 const SizedBox(height: 24),
-                if (_register) ...[
+                if (_register)
                   TextField(
                     controller: _name,
                     decoration: const InputDecoration(labelText: 'ชื่อ'),
                   ),
-                  TextField(
-                    controller: _phone,
-                    keyboardType: TextInputType.phone,
-                    decoration: const InputDecoration(labelText: 'เบอร์โทร'),
-                  ),
-                ],
                 TextField(
-                  controller: _email,
-                  keyboardType: TextInputType.emailAddress,
-                  decoration: const InputDecoration(labelText: 'อีเมล'),
+                  controller: _login,
+                  keyboardType: _register ? TextInputType.phone : TextInputType.text,
+                  decoration: InputDecoration(labelText: _register ? 'เบอร์โทร' : 'เบอร์โทร หรือ อีเมล'),
                 ),
                 TextField(
                   controller: _password,
