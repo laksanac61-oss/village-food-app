@@ -10,6 +10,7 @@ class Api {
 
   static SupabaseClient get _db => Supabase.instance.client;
   static String? get uid => _db.auth.currentUser?.id;
+  static String? get email => _db.auth.currentUser?.email;
 
   static const _orderSelect = '*, order_items(*)';
 

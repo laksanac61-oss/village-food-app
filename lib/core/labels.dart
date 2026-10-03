@@ -38,3 +38,10 @@ const shopCategories = [
 ];
 
 const shopStatusLabel = {'pending': 'รออนุมัติ', 'approved': 'อนุมัติแล้ว', 'rejected': 'ไม่ผ่าน'};
+
+const roleLabel = {'customer': 'ลูกค้า', 'shop_owner': 'ร้านค้า', 'rider': 'ไรเดอร์', 'admin': 'แอดมิน'};
+
+/// 0833474363 -> 083-347-4363, for showing a member's phone number.
+String phoneLabel(String digits) => digits.length == 10
+    ? '${digits.substring(0, 3)}-${digits.substring(3, 6)}-${digits.substring(6)}'
+    : digits;

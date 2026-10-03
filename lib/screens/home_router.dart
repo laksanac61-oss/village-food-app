@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../core/api.dart';
+import '../core/labels.dart';
 import '../widgets/common.dart';
 import '../widgets/food_animation.dart';
 import 'admin/admin_screen.dart';
@@ -21,12 +22,33 @@ class HomeRouter extends StatelessWidget {
     return (profile, hasApplication);
   }
 
+  static String? _greetedUid;
+
+  /// Says who is signed in, once per sign-in, so it is clear which account is in use.
+  /// A brand-new customer gets the welcome message instead.
+  void _greet(BuildContext context, Map<String, dynamic>? profile) {
+    if (profile == null || _greetedUid == Api.uid) return;
+    _greetedUid = Api.uid;
+    if (Api.justJoined) return;
+    final messenger = ScaffoldMessenger.of(context);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            'สวัสดีคุณ ${profile['full_name'] ?? ''} · เข้าสู่ระบบเป็น${roleLabel[profile['role']] ?? 'สมาชิก'}',
+          ),
+        ),
+      );
+    });
+  }
+
   @override
   Widget build(BuildContext context) => Scaffold(
     body: Loader<(Map<String, dynamic>?, bool)>(
       load: _load,
       builder: (context, data, _) {
         final (profile, hasApplication) = data;
+        _greet(context, profile);
         return switch (profile?['role']) {
           'admin' => const AdminScreen(),
           'shop_owner' => const ShopHome(),
@@ -93,7 +115,7 @@ class AppDrawer extends StatelessWidget {
   Widget build(BuildContext context) => Drawer(
     child: ListView(
       children: [
-        const DrawerHeader(child: Text('ส่งอาหารบ้านดุง', style: TextStyle(fontSize: 20))),
+        const _AccountHeader(),
         ListTile(
           leading: const Icon(Icons.storefront),
           title: const Text('สั่งอาหาร'),
@@ -114,10 +136,52 @@ class AppDrawer extends StatelessWidget {
           title: const Text('ออกจากระบบ'),
           onTap: () {
             Navigator.pop(context);
+            HomeRouter._greetedUid = null;
             Api.signOut();
           },
         ),
       ],
     ),
+  );
+}
+
+/// Top of the drawer: who is signed in, and as what.
+class _AccountHeader extends StatelessWidget {
+  const _AccountHeader();
+
+  @override
+  Widget build(BuildContext context) => FutureBuilder<Map<String, dynamic>?>(
+    future: Api.myProfile(),
+    builder: (context, snap) {
+      final p = snap.data;
+      final name = (p?['full_name'] as String?)?.trim() ?? '';
+      final phone = (p?['phone'] as String?) ?? '';
+      final role = roleLabel[p?['role']];
+      final scheme = Theme.of(context).colorScheme;
+      return UserAccountsDrawerHeader(
+        decoration: BoxDecoration(color: scheme.primary),
+        currentAccountPicture: CircleAvatar(
+          backgroundColor: scheme.onPrimary,
+          child: Text(
+            name.isEmpty ? '?' : name.characters.first,
+            style: TextStyle(fontSize: 28, color: scheme.primary),
+          ),
+        ),
+        accountName: Row(
+          children: [
+            Flexible(child: Text(name.isEmpty ? 'ส่งอาหารบ้านดุง' : name, overflow: TextOverflow.ellipsis)),
+            if (role != null) ...[
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(color: scheme.onPrimary, borderRadius: BorderRadius.circular(12)),
+                child: Text(role, style: TextStyle(fontSize: 12, color: scheme.primary)),
+              ),
+            ],
+          ],
+        ),
+        accountEmail: Text(phone.isNotEmpty ? 'โทร ${phoneLabel(phone)}' : Api.email ?? ''),
+      );
+    },
   );
 }
