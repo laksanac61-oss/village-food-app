@@ -22,9 +22,115 @@ String _clean(Object e) {
   return m?.group(1) ?? s;
 }
 
-Future<Uint8List?> pickPhoto() async {
-  final f = await ImagePicker().pickImage(source: ImageSource.gallery, maxWidth: 1280, imageQuality: 80);
+/// Picks a photo, shrunk so its longest side is at most [maxSide] pixels: phone photos are
+/// several MB, which makes uploads slow and pages stutter while scrolling.
+Future<Uint8List?> pickPhoto({double maxSide = 1280}) async {
+  final f = await ImagePicker().pickImage(
+    source: ImageSource.gallery,
+    maxWidth: maxSide,
+    maxHeight: maxSide,
+    imageQuality: 80,
+  );
   return f?.readAsBytes();
+}
+
+/// A network photo that fills its box: grey with a spinner while loading, fades in when
+/// ready, and shows an icon if it fails. Decoded at the size it is shown, which keeps
+/// scrolling smooth. With [zoomable], tapping opens it full screen.
+class NetPhoto extends StatelessWidget {
+  const NetPhoto(this.url, {super.key, this.fit = BoxFit.cover, this.zoomable = false});
+
+  final String url;
+  final BoxFit fit;
+  final bool zoomable;
+
+  @override
+  Widget build(BuildContext context) {
+    final bg = Theme.of(context).colorScheme.surfaceContainerHighest;
+    final photo = LayoutBuilder(
+      builder: (context, box) {
+        final dpr = MediaQuery.devicePixelRatioOf(context);
+        final w = box.maxWidth.isFinite ? (box.maxWidth * dpr).round() : null;
+        return ColoredBox(
+          color: bg,
+          child: Image.network(
+            url,
+            fit: fit,
+            width: double.infinity,
+            height: double.infinity,
+            cacheWidth: w,
+            frameBuilder: (context, child, frame, sync) => sync
+                ? child
+                : AnimatedOpacity(
+                    opacity: frame == null ? 0 : 1,
+                    duration: const Duration(milliseconds: 250),
+                    child: child,
+                  ),
+            loadingBuilder: (context, child, progress) =>
+                progress == null ? child : const Center(child: CircularProgressIndicator(strokeWidth: 2)),
+            errorBuilder: (context, _, _) => const Center(child: Icon(Icons.broken_image_outlined)),
+          ),
+        );
+      },
+    );
+    if (!zoomable) return photo;
+    return GestureDetector(onTap: () => showPhoto(context, url), child: photo);
+  }
+}
+
+/// Full-screen view of a photo; pinch to zoom, tap outside or the X to close.
+void showPhoto(BuildContext context, String url) => showDialog(
+  context: context,
+  barrierColor: Colors.black87,
+  builder: (ctx) => Stack(
+    children: [
+      Positioned.fill(
+        child: InteractiveViewer(
+          maxScale: 5,
+          child: Center(
+            child: Image.network(
+              url,
+              loadingBuilder: (context, child, progress) =>
+                  progress == null ? child : const CircularProgressIndicator(color: Colors.white),
+            ),
+          ),
+        ),
+      ),
+      Positioned(
+        top: 8,
+        right: 8,
+        child: SafeArea(
+          child: IconButton.filled(
+            onPressed: () => Navigator.pop(ctx),
+            icon: const Icon(Icons.close),
+            tooltip: 'ปิด',
+          ),
+        ),
+      ),
+    ],
+  ),
+);
+
+/// Round logo, decoded at the size shown. Tapping opens it full screen when [zoomable].
+class LogoAvatar extends StatelessWidget {
+  const LogoAvatar(this.url, {super.key, this.radius = 20, this.zoomable = false});
+
+  final String? url;
+  final double radius;
+  final bool zoomable;
+
+  @override
+  Widget build(BuildContext context) {
+    final px = (radius * 2 * MediaQuery.devicePixelRatioOf(context)).round();
+    final avatar = CircleAvatar(
+      radius: radius,
+      backgroundImage: url == null ? null : ResizeImage(NetworkImage(url!), width: px),
+      onBackgroundImageError: url == null ? null : (_, _) {},
+      child: url == null ? Icon(Icons.store, size: radius) : null,
+    );
+    if (!zoomable || url == null) return avatar;
+    return GestureDetector(onTap: () => showPhoto(context, url!), child: avatar);
+  }
 }
 
 /// Loads [load] and rebuilds with the result; pull to refresh.

@@ -237,10 +237,7 @@ class _RequestTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => ListTile(
-    leading: CircleAvatar(
-      backgroundImage: shop.imageUrl == null ? null : NetworkImage(shop.imageUrl!),
-      child: shop.imageUrl == null ? const Icon(Icons.store) : null,
-    ),
+    leading: LogoAvatar(shop.imageUrl),
     title: Text(shop.name),
     subtitle: Text('${shop.category ?? '-'} · ${shopStatusLabel[shop.status]}'),
     trailing: const Icon(Icons.chevron_right),
@@ -328,10 +325,7 @@ class _Riders extends StatelessWidget {
     if (path == null) return;
     final url = await Api.riderDocUrl(path);
     if (!context.mounted) return;
-    showDialog(
-      context: context,
-      builder: (_) => Dialog(child: Image.network(url)),
-    );
+    showPhoto(context, url);
   }
 
   @override

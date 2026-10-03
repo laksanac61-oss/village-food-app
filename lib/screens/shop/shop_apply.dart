@@ -108,15 +108,9 @@ class _Status extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               if (shop.coverUrl != null)
-                AspectRatio(
-                  aspectRatio: 16 / 9,
-                  child: Image.network(shop.coverUrl!, fit: BoxFit.cover),
-                ),
+                AspectRatio(aspectRatio: 16 / 9, child: NetPhoto(shop.coverUrl!, zoomable: true)),
               ListTile(
-                leading: CircleAvatar(
-                  backgroundImage: shop.imageUrl == null ? null : NetworkImage(shop.imageUrl!),
-                  child: shop.imageUrl == null ? const Icon(Icons.store) : null,
-                ),
+                leading: LogoAvatar(shop.imageUrl, radius: 24, zoomable: true),
                 title: Text(shop.name),
                 subtitle: Text(
                   [

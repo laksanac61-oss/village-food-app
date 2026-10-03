@@ -80,22 +80,19 @@ class ShopReviewScreen extends StatelessWidget {
         final loc = shop.location;
         return ListView(
           padding: const EdgeInsets.all(16),
+          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
           children: [
-            if (shop.coverUrl != null)
+            if (shop.coverUrl != null) ...[
+              const Text('แตะรูปเพื่อดูเต็มจอ', style: TextStyle(fontSize: 12)),
+              const SizedBox(height: 4),
               ClipRRect(
                 borderRadius: BorderRadius.circular(12),
-                child: AspectRatio(
-                  aspectRatio: 16 / 9,
-                  child: Image.network(shop.coverUrl!, fit: BoxFit.cover),
-                ),
+                child: AspectRatio(aspectRatio: 16 / 9, child: NetPhoto(shop.coverUrl!, zoomable: true)),
               ),
+            ],
             ListTile(
               contentPadding: EdgeInsets.zero,
-              leading: CircleAvatar(
-                radius: 28,
-                backgroundImage: shop.imageUrl == null ? null : NetworkImage(shop.imageUrl!),
-                child: shop.imageUrl == null ? const Icon(Icons.store) : null,
-              ),
+              leading: LogoAvatar(shop.imageUrl, radius: 28, zoomable: true),
               title: Text(shop.name, style: Theme.of(context).textTheme.titleLarge),
               subtitle: Text('${shop.category ?? '-'} · ${shopStatusLabel[shop.status] ?? shop.status}'),
             ),

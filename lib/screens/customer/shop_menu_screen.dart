@@ -111,10 +111,7 @@ class _ShopHeader extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         if (shop.coverUrl != null)
-          AspectRatio(
-            aspectRatio: 16 / 9,
-            child: Image.network(shop.coverUrl!, fit: BoxFit.cover),
-          ),
+          AspectRatio(aspectRatio: 16 / 9, child: NetPhoto(shop.coverUrl!, zoomable: true)),
         if (details.isNotEmpty)
           Padding(padding: const EdgeInsets.fromLTRB(16, 12, 16, 4), child: Text(details.join('\n'))),
         const Divider(),

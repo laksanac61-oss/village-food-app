@@ -34,12 +34,28 @@ class Api {
 
   /// [signupAs] is what the member picked at sign-up (customer, shop or rider);
   /// the home screen uses it to open the shop application or rider form first.
-  static Future<void> signUp(String phone, String password, String name, {String signupAs = 'customer'}) =>
-      _db.auth.signUp(
+  static Future<void> signUp(
+    String phone,
+    String password,
+    String name, {
+    String signupAs = 'customer',
+  }) async {
+    // Set before the call: the app switches to the home screen as soon as the session starts.
+    justJoined = signupAs == 'customer';
+    try {
+      await _db.auth.signUp(
         email: loginEmail(phone),
         password: password,
         data: {'full_name': name, 'phone': digitsOnly(phone), 'signup_as': signupAs},
       );
+    } catch (_) {
+      justJoined = false;
+      rethrow;
+    }
+  }
+
+  /// True right after a customer signs up, until the welcome message has been shown.
+  static bool justJoined = false;
 
   static String get signupAs => _db.auth.currentUser?.userMetadata?['signup_as'] as String? ?? 'customer';
 
