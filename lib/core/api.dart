@@ -131,6 +131,44 @@ class Api {
     return (Shop.fromRow(row), row['profiles'] as Map<String, dynamic>?);
   }
 
+  // ---------------------------------------------------------------- shop video
+
+  /// Limits for a shop's intro video. 50 MB is the largest file Supabase's free plan accepts.
+  static const maxVideoBytes = 50 * 1024 * 1024;
+  static const maxVideoSeconds = 60;
+
+  static Future<String> uploadVideo(Uint8List bytes, String ext, String contentType) async {
+    final path = '$uid/${DateTime.now().millisecondsSinceEpoch}.$ext';
+    await _db.storage
+        .from('videos')
+        .uploadBinary(path, bytes, fileOptions: FileOptions(contentType: contentType));
+    return _db.storage.from('videos').getPublicUrl(path);
+  }
+
+  /// Sets the shop's video, or removes it when [url] is null. Returns changes left today.
+  static Future<int> setShopVideo(String shopId, String? url) async =>
+      (await _db.rpc('set_shop_video', params: {'p_shop_id': shopId, 'p_url': url})) as int;
+
+  /// How many times the shop changed its video since midnight Thai time.
+  static Future<int> videoChangesToday(String shopId) async {
+    final thai = DateTime.now().toUtc().add(const Duration(hours: 7));
+    final midnight = DateTime.utc(thai.year, thai.month, thai.day).subtract(const Duration(hours: 7));
+    final rows = await _db
+        .from('shop_video_changes')
+        .select('id')
+        .eq('shop_id', shopId)
+        .gte('changed_at', midnight.toIso8601String());
+    return rows.length;
+  }
+
+  /// Deletes an uploaded video file so old videos do not fill the storage.
+  static Future<void> deleteVideoFile(String url) async {
+    const marker = '/object/public/videos/';
+    final i = url.indexOf(marker);
+    if (i < 0) return;
+    await _db.storage.from('videos').remove([Uri.decodeComponent(url.substring(i + marker.length))]);
+  }
+
   static Future<int> menuCount(String shopId) async =>
       (await _db.from('menu_items').select('id').eq('shop_id', shopId)).length;
 

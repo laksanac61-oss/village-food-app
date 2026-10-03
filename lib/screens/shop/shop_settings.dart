@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../core/api.dart';
 import '../../core/models.dart';
 import 'shop_form.dart';
+import 'shop_video_card.dart';
 
 class ShopSettings extends StatelessWidget {
   const ShopSettings({super.key, required this.shop, required this.onSaved});
@@ -13,6 +14,7 @@ class ShopSettings extends StatelessWidget {
   Widget build(BuildContext context) => ShopForm(
     shop: shop,
     requireDetails: false,
+    header: ShopVideoCard(shop: shop, onChanged: onSaved),
     submitLabel: 'บันทึก',
     onSubmit: (fields) async {
       await Api.updateShop(shop.id, fields);

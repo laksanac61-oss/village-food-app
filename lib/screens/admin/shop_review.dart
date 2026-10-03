@@ -8,6 +8,7 @@ import '../../core/models.dart';
 import '../../widgets/common.dart';
 import '../../widgets/maps.dart';
 import '../../widgets/promptpay_qr.dart';
+import '../../widgets/video.dart';
 
 /// Admin checks a shop application in full and approves or rejects it.
 class ShopReviewScreen extends StatelessWidget {
@@ -97,6 +98,13 @@ class ShopReviewScreen extends StatelessWidget {
               subtitle: Text('${shop.category ?? '-'} · ${shopStatusLabel[shop.status] ?? shop.status}'),
             ),
             if ((shop.description ?? '').isNotEmpty) Text(shop.description!),
+            if (shop.videoUrl != null) ...[
+              const SizedBox(height: 8),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: WatchVideoButton(url: shop.videoUrl!, title: shop.name),
+              ),
+            ],
             const Divider(height: 24),
             _Row('เจ้าของร้าน', '${owner?['full_name'] ?? '-'} · ${owner?['phone'] ?? '-'}'),
             _Row('เบอร์โทรร้าน', shop.phone ?? '-'),
