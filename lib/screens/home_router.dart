@@ -38,7 +38,7 @@ class AppDrawer extends StatelessWidget {
   Widget build(BuildContext context) => Drawer(
     child: ListView(
       children: [
-        const DrawerHeader(child: Text('สั่งอาหารในหมู่บ้าน', style: TextStyle(fontSize: 20))),
+        const DrawerHeader(child: Text('ส่งอาหารบ้านดุง', style: TextStyle(fontSize: 20))),
         ListTile(
           leading: const Icon(Icons.storefront),
           title: const Text('สั่งอาหาร'),

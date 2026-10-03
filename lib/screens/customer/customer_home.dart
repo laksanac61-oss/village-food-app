@@ -16,7 +16,7 @@ class CustomerHome extends StatelessWidget {
     length: 2,
     child: Scaffold(
       appBar: AppBar(
-        title: const Text('สั่งอาหารในหมู่บ้าน'),
+        title: const Text('ส่งอาหารบ้านดุง'),
         bottom: const TabBar(
           tabs: [
             Tab(text: 'ร้านอาหาร'),

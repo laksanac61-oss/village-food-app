@@ -23,10 +23,10 @@ class VillageFoodApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'สั่งอาหารในหมู่บ้าน',
+      title: 'ส่งอาหารบ้านดุง',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFFE65100)),
+        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF1E8C5A)),
         useMaterial3: true,
         fontFamily: 'Sarabun',
       ),
