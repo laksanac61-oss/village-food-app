@@ -85,6 +85,40 @@ class DeliveryZone {
   final double fee;
 }
 
+/// A place the customer had food delivered to before, offered again at checkout.
+class SavedAddress {
+  SavedAddress({required this.zoneId, required this.note, this.lat, this.lng});
+
+  final String? zoneId;
+  final String note;
+  final double? lat;
+  final double? lng;
+
+  LatLng? get location => lat == null || lng == null ? null : LatLng(lat!, lng!);
+
+  /// Recent deliveries, newest first, one entry per distinct address.
+  static List<SavedAddress> fromOrders(List<Map<String, dynamic>> rows, {int max = 5}) {
+    final seen = <String>{};
+    final out = <SavedAddress>[];
+    for (final r in rows) {
+      final note = ((r['address_note'] as String?) ?? '').trim();
+      if (note.isEmpty) continue;
+      final key = '${r['zone_id']}|${note.toLowerCase()}';
+      if (!seen.add(key)) continue;
+      out.add(
+        SavedAddress(
+          zoneId: r['zone_id'],
+          note: note,
+          lat: (r['dropoff_lat'] as num?)?.toDouble(),
+          lng: (r['dropoff_lng'] as num?)?.toDouble(),
+        ),
+      );
+      if (out.length == max) break;
+    }
+    return out;
+  }
+}
+
 class Order {
   Order.fromRow(Map<String, dynamic> r)
     : id = r['id'],

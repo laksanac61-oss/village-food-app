@@ -251,6 +251,18 @@ class Api {
   static Future<Order> order(String id) async =>
       Order.fromRow(await _db.from('orders').select(_orderSelect).eq('id', id).single());
 
+  /// Addresses from the customer's past deliveries, newest first.
+  static Future<List<SavedAddress>> mySavedAddresses() async {
+    final rows = await _db
+        .from('orders')
+        .select('zone_id, address_note, dropoff_lat, dropoff_lng')
+        .eq('customer_id', uid!)
+        .eq('fulfillment', 'delivery')
+        .order('created_at', ascending: false)
+        .limit(50);
+    return SavedAddress.fromOrders(rows);
+  }
+
   static Future<List<Order>> myOrders() async {
     final rows = await _db
         .from('orders')

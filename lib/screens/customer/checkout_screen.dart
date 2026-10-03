@@ -26,16 +26,39 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   LatLng? _home;
   bool _busy = false;
   late final Future<List<DeliveryZone>> _zones = Api.zones();
+  List<SavedAddress> _saved = [];
+  SavedAddress? _picked;
 
   @override
   void initState() {
     super.initState();
-    Api.myProfile().then((p) {
-      if (p == null || !mounted || _address.text.isNotEmpty) return;
-      _address.text = [p['house_no'], p['soi']].where((s) => (s ?? '').isNotEmpty).join(' ');
-      if (p['home_lat'] != null && p['home_lng'] != null) {
-        setState(() => _home = LatLng((p['home_lat'] as num).toDouble(), (p['home_lng'] as num).toDouble()));
-      }
+    _prefill();
+  }
+
+  /// Fills in the last delivery address so a returning customer can order straight away;
+  /// a first-time customer gets the address from their profile.
+  Future<void> _prefill() async {
+    final saved = await Api.mySavedAddresses().catchError((_) => <SavedAddress>[]);
+    if (!mounted) return;
+    setState(() => _saved = saved);
+    if (saved.isNotEmpty) return _use(saved.first);
+    final p = await Api.myProfile();
+    if (p == null || !mounted || _address.text.isNotEmpty) return;
+    _address.text = [p['house_no'], p['soi']].where((s) => (s ?? '').isNotEmpty).join(' ');
+    if (p['home_lat'] != null && p['home_lng'] != null) {
+      setState(() => _home = LatLng((p['home_lat'] as num).toDouble(), (p['home_lng'] as num).toDouble()));
+    }
+  }
+
+  Future<void> _use(SavedAddress a) async {
+    final zones = await _zones;
+    if (!mounted) return;
+    setState(() {
+      _picked = a;
+      _address.text = a.note;
+      _home = a.location ?? _home;
+      // the zone may have been removed since; then the customer picks one again
+      _zone = zones.where((z) => z.id == a.zoneId).firstOrNull;
     });
   }
 
@@ -118,10 +141,33 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             onSelectionChanged: (s) => setState(() => _fulfillment = s.first),
           ),
           if (_fulfillment == 'delivery') ...[
+            if (_saved.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              const Text('ส่งที่เดิม แตะเพื่อเลือก'),
+              const SizedBox(height: 4),
+              Wrap(
+                spacing: 8,
+                runSpacing: 4,
+                children: [
+                  for (final a in _saved)
+                    ChoiceChip(
+                      avatar: const Icon(Icons.history, size: 18),
+                      label: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 220),
+                        child: Text(a.note, overflow: TextOverflow.ellipsis),
+                      ),
+                      selected: identical(_picked, a),
+                      onSelected: (_) => _use(a),
+                    ),
+                ],
+              ),
+            ],
             const SizedBox(height: 12),
             FutureBuilder<List<DeliveryZone>>(
               future: _zones,
               builder: (context, snap) => DropdownButtonFormField<DeliveryZone>(
+                // re-created when a saved address picks the zone
+                key: ValueKey(_zone?.id),
                 initialValue: _zone,
                 decoration: const InputDecoration(labelText: 'โซนจัดส่ง'),
                 items: [
@@ -134,6 +180,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             TextField(
               controller: _address,
               decoration: const InputDecoration(labelText: 'บ้านเลขที่ / ซอย / จุดสังเกต'),
+              onChanged: (_) {
+                if (_picked != null) setState(() => _picked = null);
+              },
             ),
             const SizedBox(height: 8),
             if (_home != null) OrderMap(dropoff: _home, height: 160),
