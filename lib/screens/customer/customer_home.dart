@@ -17,7 +17,7 @@ class CustomerHome extends StatelessWidget {
     length: 2,
     child: Scaffold(
       appBar: AppBar(
-        title: const Text('ส่งอาหารบ้านดุง'),
+        title: _Title(name: Api.myName),
         bottom: const TabBar(
           tabs: [
             Tab(text: 'ร้านอาหาร'),
@@ -56,6 +56,39 @@ class CustomerHome extends StatelessWidget {
       ),
     ),
   );
+}
+
+/// App name with a hello to the signed-in customer underneath, so they know whose account it is.
+class _Title extends StatelessWidget {
+  const _Title({required this.name});
+  final String name;
+
+  @override
+  Widget build(BuildContext context) {
+    if (name.isEmpty) return const Text('ส่งอาหารบ้านดุง');
+    final theme = Theme.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const Text('ส่งอาหารบ้านดุง'),
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.account_circle, size: 16, color: theme.colorScheme.primary),
+            const SizedBox(width: 4),
+            Flexible(
+              child: Text(
+                'สวัสดี คุณ$name',
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.primary),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
 }
 
 class _ShopTile extends StatelessWidget {

@@ -12,6 +12,9 @@ class Api {
   static String? get uid => _db.auth.currentUser?.id;
   static String? get email => _db.auth.currentUser?.email;
 
+  /// The name given at sign-up, available without a database call.
+  static String get myName => (_db.auth.currentUser?.userMetadata?['full_name'] as String? ?? '').trim();
+
   static const _orderSelect = '*, order_items(*)';
 
   // ---------------------------------------------------------------- auth
