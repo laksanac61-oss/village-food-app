@@ -6,6 +6,7 @@ import '../../core/models.dart';
 import '../../widgets/busy.dart';
 import '../../widgets/common.dart';
 import '../home_router.dart';
+import 'order_alerts.dart';
 import 'shop_menu_admin.dart';
 import 'shop_orders.dart';
 import 'shop_settings.dart';
@@ -61,6 +62,7 @@ class ShopHome extends StatelessWidget {
           drawer: const AppDrawer(),
           body: Column(
             children: [
+              if (shop.isActive) OrderAlerts(key: ValueKey('alerts-${shop.id}'), shop: shop),
               if (!shop.isActive)
                 const MaterialBanner(
                   content: Text('ร้านถูกระงับชั่วคราว ลูกค้าจะมองไม่เห็นร้าน ติดต่อผู้ดูแลระบบ'),

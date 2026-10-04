@@ -340,6 +340,10 @@ class Api {
   }
 
   /// Fires whenever any order this user can see changes; screens reload on it.
+  /// Live rows of one shop's orders (without items), for new-order alerts.
+  static Stream<List<Map<String, dynamic>>> shopOrderRows(String shopId) =>
+      _db.from('orders').stream(primaryKey: ['id']).eq('shop_id', shopId);
+
   static Stream<void> orderChanges() => _db.from('orders').stream(primaryKey: ['id']).map((_) {});
 
   static Future<void> setStatus(String orderId, String status) =>
