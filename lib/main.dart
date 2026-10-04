@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'core/push.dart';
 import 'screens/auth_screen.dart';
 import 'screens/home_router.dart';
 
@@ -13,6 +14,13 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   if (supabaseUrl.isNotEmpty) {
     await Supabase.initialize(url: supabaseUrl, publishableKey: supabaseAnonKey);
+    // save this phone for notifications whenever someone is signed in (including when the app opens)
+    Supabase.instance.client.auth.onAuthStateChange.listen((s) {
+      if (s.session != null &&
+          (s.event == AuthChangeEvent.signedIn || s.event == AuthChangeEvent.initialSession)) {
+        Push.register();
+      }
+    });
   }
   runApp(const VillageFoodApp());
 }
