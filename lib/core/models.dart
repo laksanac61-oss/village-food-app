@@ -213,3 +213,35 @@ class CartLine {
   int qty;
   String note;
 }
+
+/// One period of a shop's income: completed orders only, food total without the delivery fee.
+class RevenueRow {
+  RevenueRow(this.bucket, this.orders, this.food, {this.cash = 0, this.promptpay = 0});
+  RevenueRow.fromRow(Map<String, dynamic> r)
+    : bucket = DateTime.parse(r['bucket']),
+      orders = r['orders'] ?? 0,
+      food = _num(r['food']),
+      cash = _num(r['cash']),
+      promptpay = _num(r['promptpay']);
+
+  final DateTime bucket;
+  final int orders;
+  final double food;
+  final double cash;
+  final double promptpay;
+}
+
+/// Customer stars for a shop and how many times it has been ordered from.
+class ShopRating {
+  ShopRating(this.stars, this.reviews, this.orders);
+  ShopRating.fromRow(Map<String, dynamic> r)
+    : stars = (r['stars'] as num?)?.toDouble(),
+      reviews = r['reviews'] ?? 0,
+      orders = r['orders'] ?? 0;
+
+  static final none = ShopRating(null, 0, 0);
+
+  final double? stars;
+  final int reviews;
+  final int orders;
+}

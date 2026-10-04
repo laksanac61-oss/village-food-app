@@ -6,6 +6,7 @@ import '../../widgets/busy.dart';
 import '../../widgets/common.dart';
 import '../../widgets/video.dart';
 import '../../widgets/order_card.dart';
+import '../../widgets/stars.dart';
 import '../home_router.dart';
 import 'order_detail_screen.dart';
 import 'shop_menu_screen.dart';
@@ -29,11 +30,17 @@ class CustomerHome extends StatelessWidget {
       drawer: const AppDrawer(),
       body: TabBarView(
         children: [
-          Loader<List<Shop>>(
-            load: Api.openShops,
-            builder: (context, shops, _) => shops.isEmpty
-                ? const Empty('ยังไม่มีร้านค้า')
-                : ListView(children: [for (final s in shops) _ShopTile(s)]),
+          Loader<(List<Shop>, Map<String, ShopRating>)>(
+            load: () async =>
+                (await Api.openShops(), await Api.shopRatings().catchError((_) => <String, ShopRating>{})),
+            builder: (context, data, _) {
+              final (shops, ratings) = data;
+              return shops.isEmpty
+                  ? const Empty('ยังไม่มีร้านค้า')
+                  : ListView(
+                      children: [for (final s in shops) _ShopTile(s, ratings[s.id] ?? ShopRating.none)],
+                    );
+            },
           ),
           Loader<List<Order>>(
             load: Api.myOrders,
@@ -93,8 +100,9 @@ class _Title extends StatelessWidget {
 }
 
 class _ShopTile extends StatelessWidget {
-  const _ShopTile(this.shop);
+  const _ShopTile(this.shop, this.rating);
   final Shop shop;
+  final ShopRating rating;
 
   @override
   Widget build(BuildContext context) => ListTile(
@@ -105,14 +113,20 @@ class _ShopTile extends StatelessWidget {
         if (shop.isOpen && shop.isBusy) ...[const SizedBox(width: 6), const BusyTag()],
       ],
     ),
-    subtitle: Text(
-      [
-        shop.category,
-        shop.isOpen
-            ? (shop.isBusy ? 'เปิดอยู่ · ไรเดอร์ติดงาน ส่งช้า' : 'เปิดอยู่')
-            : (shop.acceptsPreorder ? 'ปิดอยู่ · จองล่วงหน้าได้' : 'ปิดอยู่'),
-        shop.openingHours,
-      ].whereType<String>().where((s) => s.isNotEmpty).join(' · '),
+    subtitle: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        ShopRatingLine(rating),
+        Text(
+          [
+            shop.category,
+            shop.isOpen
+                ? (shop.isBusy ? 'เปิดอยู่ · ไรเดอร์ติดงาน ส่งช้า' : 'เปิดอยู่')
+                : (shop.acceptsPreorder ? 'ปิดอยู่ · จองล่วงหน้าได้' : 'ปิดอยู่'),
+            shop.openingHours,
+          ].whereType<String>().where((s) => s.isNotEmpty).join(' · '),
+        ),
+      ],
     ),
     trailing: shop.videoUrl == null
         ? null
@@ -122,6 +136,11 @@ class _ShopTile extends StatelessWidget {
             onPressed: () => showVideo(context, shop.videoUrl!, title: shop.name),
           ),
     enabled: shop.canOrder,
-    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => ShopMenuScreen(shop: shop))),
+    onTap: () => Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ShopMenuScreen(shop: shop, rating: rating),
+      ),
+    ),
   );
 }

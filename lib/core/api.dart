@@ -346,6 +346,42 @@ class Api {
 
   static Stream<void> orderChanges() => _db.from('orders').stream(primaryKey: ['id']).map((_) {});
 
+  // ---------------------------------------------------------------- income and ratings
+
+  static String _date(DateTime d) =>
+      '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+
+  /// [unit] is day, month or year; dates are Thai calendar days, inclusive.
+  static Future<List<RevenueRow>> shopRevenue(String shopId, String unit, DateTime from, DateTime to) async {
+    final rows = await _db.rpc(
+      'shop_revenue',
+      params: {'p_shop_id': shopId, 'p_unit': unit, 'p_from': _date(from), 'p_to': _date(to)},
+    );
+    return [for (final r in rows as List) RevenueRow.fromRow(r)];
+  }
+
+  static Future<List<Map<String, dynamic>>> shopTopItems(String shopId, DateTime from, DateTime to) async =>
+      List<Map<String, dynamic>>.from(
+        await _db.rpc(
+          'shop_top_items',
+          params: {'p_shop_id': shopId, 'p_from': _date(from), 'p_to': _date(to)},
+        ),
+      );
+
+  static Future<Map<String, ShopRating>> shopRatings() async {
+    final rows = await _db.rpc('shop_ratings') as List;
+    return {for (final r in rows) r['shop_id'] as String: ShopRating.fromRow(r)};
+  }
+
+  static Future<List<Map<String, dynamic>>> shopReviews(String shopId) async =>
+      List<Map<String, dynamic>>.from(await _db.rpc('shop_reviews', params: {'p_shop_id': shopId}));
+
+  static Future<Map<String, dynamic>?> myReview(String orderId) =>
+      _db.from('order_reviews').select().eq('order_id', orderId).maybeSingle();
+
+  static Future<void> rateOrder(String orderId, int stars, String? comment) =>
+      _db.rpc('rate_order', params: {'p_order_id': orderId, 'p_stars': stars, 'p_comment': comment});
+
   static Future<void> setStatus(String orderId, String status) =>
       _db.rpc('set_order_status', params: {'p_order_id': orderId, 'p_status': status});
 

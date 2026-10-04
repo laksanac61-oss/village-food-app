@@ -8,6 +8,7 @@ import '../../widgets/common.dart';
 import '../../widgets/order_card.dart';
 import '../../widgets/maps.dart';
 import '../../widgets/promptpay_qr.dart';
+import '../../widgets/stars.dart';
 
 class OrderDetailScreen extends StatelessWidget {
   const OrderDetailScreen({super.key, required this.orderId});
@@ -39,6 +40,7 @@ class OrderDetailScreen extends StatelessWidget {
           padding: const EdgeInsets.only(bottom: 32),
           children: [
             OrderCard(order: o, title: shop.name),
+            if (o.status == 'completed') _RateCard(order: o, shopName: shop.name),
             if (o.isDelivery && !o.isClosed) _MapSection(order: o, onChanged: reload),
             if (o.foodPaymentStatus == 'rejected')
               const Padding(
@@ -157,6 +159,98 @@ class _MapSection extends StatelessWidget {
               },
             ),
         ],
+      ),
+    );
+  }
+}
+
+/// After the food arrives, the customer gives the shop 1-5 stars and an optional short review.
+class _RateCard extends StatefulWidget {
+  const _RateCard({required this.order, required this.shopName});
+  final Order order;
+  final String shopName;
+
+  @override
+  State<_RateCard> createState() => _RateCardState();
+}
+
+class _RateCardState extends State<_RateCard> {
+  final _comment = TextEditingController();
+  int _stars = 0;
+  bool _saved = false;
+  bool _editing = false;
+  bool _busy = false;
+
+  @override
+  void initState() {
+    super.initState();
+    Api.myReview(widget.order.id).then((r) {
+      if (r == null || !mounted) return;
+      setState(() {
+        _stars = r['stars'] as int;
+        _comment.text = r['comment'] ?? '';
+        _saved = true;
+      });
+    }, onError: (_) {});
+  }
+
+  Future<void> _send() async {
+    setState(() => _busy = true);
+    final ok = await guard(
+      context,
+      () => Api.rateOrder(widget.order.id, _stars, _comment.text.trim()),
+      done: 'ขอบคุณสำหรับรีวิวค่ะ',
+    );
+    if (!mounted) return;
+    setState(() {
+      _busy = false;
+      if (ok) {
+        _saved = true;
+        _editing = false;
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_saved && !_editing) {
+      return Card(
+        margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        child: ListTile(
+          leading: const Icon(Icons.check_circle, color: Colors.green),
+          title: Row(children: [const Text('คุณให้ '), Stars(_stars.toDouble())]),
+          subtitle: _comment.text.isEmpty ? null : Text(_comment.text),
+          trailing: TextButton(onPressed: () => setState(() => _editing = true), child: const Text('แก้ไข')),
+        ),
+      );
+    }
+    return Card(
+      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      color: Theme.of(context).colorScheme.secondaryContainer,
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          children: [
+            Text(
+              'อาหารจาก ${widget.shopName} เป็นอย่างไรบ้างคะ',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            StarPicker(value: _stars, onChanged: (v) => setState(() => _stars = v)),
+            if (_stars > 0) ...[
+              Text(
+                starWords[_stars]!,
+                style: const TextStyle(color: starColor, fontWeight: FontWeight.bold),
+              ),
+              TextField(
+                controller: _comment,
+                maxLength: 300,
+                maxLines: 2,
+                decoration: const InputDecoration(hintText: 'เล่าให้ร้านฟังหน่อย (ไม่ใส่ก็ได้)'),
+              ),
+              FilledButton(onPressed: _busy ? null : _send, child: const Text('ส่งรีวิว')),
+            ],
+          ],
+        ),
       ),
     );
   }

@@ -7,6 +7,7 @@ import '../../widgets/busy.dart';
 import '../../widgets/common.dart';
 import '../home_router.dart';
 import 'order_alerts.dart';
+import 'shop_income.dart';
 import 'shop_menu_admin.dart';
 import 'shop_orders.dart';
 import 'shop_settings.dart';
@@ -32,7 +33,7 @@ class ShopHome extends StatelessWidget {
         );
       }
       return DefaultTabController(
-        length: 3,
+        length: 4,
         child: Scaffold(
           appBar: AppBar(
             title: Text(shop.name),
@@ -55,6 +56,7 @@ class ShopHome extends StatelessWidget {
               tabs: [
                 Tab(text: 'ออเดอร์'),
                 Tab(text: 'เมนู'),
+                Tab(text: 'รายได้'),
                 Tab(text: 'ตั้งค่าร้าน'),
               ],
             ),
@@ -78,6 +80,7 @@ class ShopHome extends StatelessWidget {
                   children: [
                     ShopOrders(shop: shop),
                     ShopMenuAdmin(shop: shop, onFirstItem: reload),
+                    ShopIncome(shop: shop),
                     ShopSettings(shop: shop, onSaved: reload),
                   ],
                 ),
