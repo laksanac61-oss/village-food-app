@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 
+import 'package:latlong2/latlong.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'models.dart';
@@ -231,6 +232,7 @@ class Api {
     required String foodPayment,
     required String deliveryPayment,
     String? addressNote,
+    DateTime? scheduledFor,
   }) async {
     final id = await _db.rpc(
       'place_order',
@@ -244,9 +246,31 @@ class Api {
         'p_food_payment': foodPayment,
         'p_delivery_payment': deliveryPayment,
         'p_address_note': addressNote,
+        'p_scheduled_for': scheduledFor?.toUtc().toIso8601String(),
       },
     );
     return id as String;
+  }
+
+  /// A booked time near [pin] within 30 minutes of [time], if a neighbour already booked one.
+  static Future<({DateTime slot, int orders})?> nearbyPreorder(
+    String shopId,
+    DateTime time,
+    LatLng pin,
+  ) async {
+    final rows = await _db.rpc(
+      'nearby_preorder',
+      params: {
+        'p_shop_id': shopId,
+        'p_time': time.toUtc().toIso8601String(),
+        'p_lat': pin.latitude,
+        'p_lng': pin.longitude,
+      },
+    );
+    final list = rows as List;
+    if (list.isEmpty) return null;
+    final r = list.first as Map<String, dynamic>;
+    return (slot: DateTime.parse(r['slot']).toLocal(), orders: r['orders'] as int);
   }
 
   static Future<void> setDropoff(String orderId, double lat, double lng) =>

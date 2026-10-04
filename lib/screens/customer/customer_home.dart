@@ -108,7 +108,9 @@ class _ShopTile extends StatelessWidget {
     subtitle: Text(
       [
         shop.category,
-        shop.isOpen ? (shop.isBusy ? 'เปิดอยู่ · ไรเดอร์ติดงาน ส่งช้า' : 'เปิดอยู่') : 'ปิดอยู่',
+        shop.isOpen
+            ? (shop.isBusy ? 'เปิดอยู่ · ไรเดอร์ติดงาน ส่งช้า' : 'เปิดอยู่')
+            : (shop.acceptsPreorder ? 'ปิดอยู่ · จองล่วงหน้าได้' : 'ปิดอยู่'),
         shop.openingHours,
       ].whereType<String>().where((s) => s.isNotEmpty).join(' · '),
     ),
@@ -119,7 +121,7 @@ class _ShopTile extends StatelessWidget {
             tooltip: 'ดูวิดีโอแนะนำร้าน',
             onPressed: () => showVideo(context, shop.videoUrl!, title: shop.name),
           ),
-    enabled: shop.isOpen,
+    enabled: shop.canOrder,
     onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => ShopMenuScreen(shop: shop))),
   );
 }

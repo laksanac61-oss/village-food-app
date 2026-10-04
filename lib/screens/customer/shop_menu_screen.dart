@@ -42,6 +42,12 @@ class _ShopMenuScreenState extends State<ShopMenuScreen> {
             : ListView(
                 children: [
                   _ShopHeader(widget.shop),
+                  if (!widget.shop.isOpen)
+                    const ListTile(
+                      leading: Icon(Icons.schedule),
+                      title: Text('ร้านปิดอยู่ตอนนี้'),
+                      subtitle: Text('เลือกเมนูแล้วจองเวลารับอาหารล่วงหน้าได้'),
+                    ),
                   for (final m in menu)
                     ListTile(
                       leading: m.imageUrl == null

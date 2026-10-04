@@ -4,6 +4,7 @@ import '../../core/api.dart';
 import '../../core/models.dart';
 import '../../widgets/common.dart';
 import '../../widgets/order_card.dart';
+import 'shop_preorders.dart';
 
 class ShopOrders extends StatelessWidget {
   const ShopOrders({super.key, required this.shop});
@@ -73,9 +74,10 @@ class ShopOrders extends StatelessWidget {
     builder: (context, orders, reload) {
       final active = orders.where((o) => !o.isClosed).toList();
       final done = orders.where((o) => o.isClosed).take(20).toList();
-      if (orders.isEmpty) return const Empty('ยังไม่มีออเดอร์');
       return ListView(
         children: [
+          PreorderSummary(shop: shop, orders: orders),
+          if (orders.isEmpty) const Padding(padding: EdgeInsets.all(32), child: Empty('ยังไม่มีออเดอร์')),
           if (active.isNotEmpty) const _Header('กำลังดำเนินการ'),
           for (final o in active) OrderCard(order: o, actions: _actions(context, o, reload)),
           if (done.isNotEmpty) const _Header('เสร็จแล้ว / ยกเลิก'),

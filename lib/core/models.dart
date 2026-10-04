@@ -26,7 +26,9 @@ class Shop {
       openingHours = r['opening_hours'],
       videoUrl = r['video_url'],
       videoChangesPerDay = r['video_changes_per_day'] ?? 2,
-      busyUntil = r['busy_until'] == null ? null : DateTime.parse(r['busy_until']).toLocal();
+      busyUntil = r['busy_until'] == null ? null : DateTime.parse(r['busy_until']).toLocal(),
+      acceptsPreorder = r['accepts_preorder'] ?? true,
+      prepMinutes = r['prep_minutes'] ?? 20;
 
   final String id;
   final String ownerId;
@@ -56,6 +58,15 @@ class Shop {
   /// The shop said deliveries are slow (riders tied up) until this time.
   final DateTime? busyUntil;
   bool get isBusy => busyUntil != null && busyUntil!.isAfter(DateTime.now());
+
+  /// Customers may book a time ahead, even while the shop is closed.
+  final bool acceptsPreorder;
+
+  /// How long one cooking round takes, used to tell the shop when to start a booked round.
+  final int prepMinutes;
+
+  /// Customers can open the shop: to order now, or to book ahead while it is closed.
+  bool get canOrder => isOpen || acceptsPreorder;
 
   bool get isPending => status == 'pending';
   bool get isRejected => status == 'rejected';
@@ -145,6 +156,7 @@ class Order {
       riderLng = (r['rider_lng'] as num?)?.toDouble(),
       riderLocAt = r['rider_loc_at'] == null ? null : DateTime.parse(r['rider_loc_at']).toLocal(),
       createdAt = DateTime.parse(r['created_at']).toLocal(),
+      scheduledFor = r['scheduled_for'] == null ? null : DateTime.parse(r['scheduled_for']).toLocal(),
       items = [
         for (final i in (r['order_items'] as List? ?? const []))
           OrderLine(i['name'], _num(i['unit_price']), i['qty'], i['note']),
@@ -169,7 +181,13 @@ class Order {
   final double? riderLng;
   final DateTime? riderLocAt;
   final DateTime createdAt;
+
+  /// Booked time for a pre-order; null means as soon as possible.
+  final DateTime? scheduledFor;
   final List<OrderLine> items;
+
+  bool get isPreorder => scheduledFor != null;
+  LatLng? get dropoff => hasDropoff ? LatLng(dropoffLat!, dropoffLng!) : null;
 
   bool get isDelivery => fulfillment == 'delivery';
   bool get hasDropoff => dropoffLat != null && dropoffLng != null;
