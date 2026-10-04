@@ -107,8 +107,10 @@ class WelcomeDialog extends StatelessWidget {
 /// Step-by-step guide for shops, published with the web app (web/manual/shop.html).
 const shopManualUrl = 'https://cozy-melomakarona-cafbc6.netlify.app/manual/shop.html';
 
-/// The Android app, uploaded next to the web app (download/ban-dung.apk in the web zip).
-const androidApkUrl = 'https://cozy-melomakarona-cafbc6.netlify.app/download/ban-dung.apk';
+/// The Android app, published by the Android APK workflow as the "latest" GitHub release (free to download,
+/// so it doesn't use Netlify credits).
+const androidApkUrl =
+    'https://github.com/laksanac61-oss/village-food-app/releases/download/latest/ban-dung.apk';
 
 /// Drawer shared by every role's home screen.
 class AppDrawer extends StatelessWidget {
