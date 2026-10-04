@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../../core/alert/alert.dart' as alert;
@@ -10,7 +11,7 @@ import '../../core/order_watch.dart';
 import '../../core/schedule.dart';
 
 /// Rings, vibrates and pops up when a new order or payment slip arrives, while the shop has the app open.
-/// Browsers only play sound after a tap, so the bar asks the shop to switch the sound on first.
+/// Browsers only play sound after a tap, so on the web the bar asks the shop to switch the sound on first.
 class OrderAlerts extends StatefulWidget {
   const OrderAlerts({super.key, required this.shop});
   final Shop shop;
@@ -28,7 +29,7 @@ class _OrderAlertsState extends State<OrderAlerts> {
   StreamSubscription<List<Map<String, dynamic>>>? _sub;
   late final AppLifecycleListener _lifecycle;
   Timer? _repeat;
-  bool _soundOn = false;
+  bool _soundOn = !kIsWeb; // the Android app may play sound without a tap first
   bool _screenOn = false;
   bool _dialogOpen = false;
 

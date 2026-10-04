@@ -1,9 +1,13 @@
+import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/services.dart';
 
 /// Browsers only allow sound after a tap; elsewhere it is always allowed.
 Future<bool> unlockSound() async => true;
 
-void playChime() => SystemSound.play(SystemSoundType.alert);
+final _player = AudioPlayer()..setReleaseMode(ReleaseMode.stop);
+
+/// Plays the same chime as the web app, through the media volume.
+void playChime() => _player.play(AssetSource('sounds/new_order.wav')).catchError((_) {});
 
 void vibrate() => HapticFeedback.heavyImpact();
 
