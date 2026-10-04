@@ -5,12 +5,14 @@ import '../../core/labels.dart';
 import '../../core/models.dart';
 import '../../widgets/busy.dart';
 import '../../widgets/common.dart';
+import '../../widgets/stars.dart';
 import '../../widgets/video.dart';
 import 'checkout_screen.dart';
 
 class ShopMenuScreen extends StatefulWidget {
-  const ShopMenuScreen({super.key, required this.shop});
+  const ShopMenuScreen({super.key, required this.shop, this.rating});
   final Shop shop;
+  final ShopRating? rating;
 
   @override
   State<ShopMenuScreen> createState() => _ShopMenuScreenState();
@@ -41,7 +43,7 @@ class _ShopMenuScreenState extends State<ShopMenuScreen> {
             ? const Empty('ร้านนี้ยังไม่มีเมนู')
             : ListView(
                 children: [
-                  _ShopHeader(widget.shop),
+                  _ShopHeader(widget.shop, widget.rating),
                   if (!widget.shop.isOpen)
                     const ListTile(
                       leading: Icon(Icons.schedule),
@@ -103,8 +105,9 @@ class _ShopMenuScreenState extends State<ShopMenuScreen> {
 
 /// Storefront photo and basic details above the menu.
 class _ShopHeader extends StatelessWidget {
-  const _ShopHeader(this.shop);
+  const _ShopHeader(this.shop, this.rating);
   final Shop shop;
+  final ShopRating? rating;
 
   @override
   Widget build(BuildContext context) {
@@ -114,7 +117,7 @@ class _ShopHeader extends StatelessWidget {
       if ((shop.openingHours ?? '').isNotEmpty) 'เวลาเปิด ${shop.openingHours}',
       shop.address,
     ].whereType<String>().where((s) => s.isNotEmpty).toList();
-    if (shop.coverUrl == null && details.isEmpty && shop.videoUrl == null && !shop.isBusy) {
+    if (shop.coverUrl == null && details.isEmpty && shop.videoUrl == null && !shop.isBusy && rating == null) {
       return const SizedBox.shrink();
     }
     return Column(
@@ -126,6 +129,17 @@ class _ShopHeader extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12),
             child: BusyNotice(shop: shop),
+          ),
+        if (rating != null)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 4, 0),
+            child: Row(
+              children: [
+                Expanded(child: ShopRatingLine(rating!)),
+                if (rating!.reviews > 0)
+                  TextButton(onPressed: () => showReviews(context, shop), child: const Text('ดูรีวิว')),
+              ],
+            ),
           ),
         if (details.isNotEmpty)
           Padding(padding: const EdgeInsets.fromLTRB(16, 12, 16, 4), child: Text(details.join('\n'))),

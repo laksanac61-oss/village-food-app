@@ -392,3 +392,70 @@ exception when others then
   if sqlerrm not like 'shop does not take pre-orders%' then raise; end if;
 end $$;
 \echo ALL PRE-ORDER CHECKS PASSED
+
+-- ---------------------------------------------------------------- income and ratings (0008)
+reset role;
+grant select, insert, update, delete on order_reviews to app_user;
+grant execute on all functions in schema public to app_user;
+set role app_user;
+-- the first order in this file was delivered and completed by now
+set test.uid = '00000000-0000-0000-0000-00000000000b';
+do $$
+declare r record; total numeric := 0; n int := 0;
+begin
+  for r in select * from shop_revenue('10000000-0000-0000-0000-000000000001', 'day', current_date - 1, current_date + 1) loop
+    total := total + r.food; n := n + r.orders;
+  end loop;
+  if n <> (select count(*) from orders where shop_id = '10000000-0000-0000-0000-000000000001' and status = 'completed')
+     or total <> (select coalesce(sum(food_total), 0) from orders where shop_id = '10000000-0000-0000-0000-000000000001' and status = 'completed') then
+    raise exception 'FAIL: revenue % from % orders does not match', total, n;
+  end if;
+  if n = 0 then raise exception 'FAIL: test needs a completed order'; end if;
+  if not exists (select 1 from shop_revenue('10000000-0000-0000-0000-000000000001', 'month', current_date - 400, current_date)) then
+    raise exception 'FAIL: monthly revenue empty';
+  end if;
+  if not exists (select 1 from shop_top_items('10000000-0000-0000-0000-000000000001', current_date - 1, current_date)) then
+    raise exception 'FAIL: top items empty';
+  end if;
+end $$;
+-- someone else cannot read this shop's income
+set test.uid = '00000000-0000-0000-0000-00000000000c';
+do $$ begin
+  perform shop_revenue('10000000-0000-0000-0000-000000000001', 'day', current_date - 1, current_date);
+  raise exception 'FAIL: customer read shop income';
+exception when others then
+  if sqlerrm not like 'not allowed%' then raise; end if;
+end $$;
+-- the customer rates their completed order; others cannot
+do $$
+declare v_order uuid;
+begin
+  select id into v_order from orders
+   where customer_id = '00000000-0000-0000-0000-00000000000c' and status = 'completed' limit 1;
+  perform rate_order(v_order, 4, 'อร่อย');
+  perform rate_order(v_order, 5, 'อร่อยมาก');   -- rating again replaces it
+  begin
+    perform rate_order(v_order, 9);
+    raise exception 'FAIL: 9 stars accepted';
+  exception when others then
+    if sqlerrm not like 'stars must%' then raise; end if;
+  end;
+end $$;
+set test.uid = '00000000-0000-0000-0000-00000000000e';
+do $$
+declare r record;
+begin
+  begin
+    perform rate_order((select id from orders where status = 'completed' limit 1), 1);
+    raise exception 'FAIL: rated someone else''s order';
+  exception when others then
+    if sqlerrm not like 'order not found%' then raise; end if;
+  end;
+  select * into r from shop_ratings() where shop_id = '10000000-0000-0000-0000-000000000001';
+  if r.stars <> 5 or r.reviews <> 1 or r.orders < 1 then raise exception 'FAIL: shop rating %', r; end if;
+  if (select comment from shop_reviews('10000000-0000-0000-0000-000000000001') limit 1) <> 'อร่อยมาก' then
+    raise exception 'FAIL: review comment';
+  end if;
+  if exists (select 1 from order_reviews) then raise exception 'FAIL: other members read raw reviews'; end if;
+end $$;
+\echo ALL INCOME AND RATING CHECKS PASSED

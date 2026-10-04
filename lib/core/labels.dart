@@ -20,7 +20,14 @@ const paymentStatusLabel = {
 
 const paymentMethodLabel = {'promptpay': 'สแกน QR พร้อมเพย์', 'cash': 'เงินสด'};
 
-String baht(double v) => '฿${v == v.roundToDouble() ? v.toStringAsFixed(0) : v.toStringAsFixed(2)}';
+/// 1234.5 -> "฿1,234.50", 50 -> "฿50".
+String baht(double v) {
+  final text = v == v.roundToDouble() ? v.toStringAsFixed(0) : v.toStringAsFixed(2);
+  final dot = text.indexOf('.');
+  final whole = dot < 0 ? text : text.substring(0, dot);
+  final grouped = whole.replaceAllMapped(RegExp(r'\B(?=(\d{3})+(?!\d))'), (_) => ',');
+  return '฿$grouped${dot < 0 ? '' : text.substring(dot)}';
+}
 
 /// Food types a shop picks when applying; customers see it under the shop name.
 const shopCategories = [
