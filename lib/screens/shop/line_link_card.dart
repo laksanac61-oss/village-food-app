@@ -5,8 +5,8 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../core/api.dart';
 import '../../widgets/common.dart';
 
-/// Our LINE Official Account ID (with @), for the add-friend link. Empty until the OA is set up.
-const lineOaId = '';
+/// Our LINE Official Account "ส่งอาหารบ้านดุง" (basic ID), for the add-friend link.
+const lineOaId = '@003wvqab';
 
 /// In shop settings: link the owner's LINE, so an order still not accepted after 3 minutes also comes as
 /// a LINE message. The app shows a 6-digit code; the shop sends it to our LINE OA.
