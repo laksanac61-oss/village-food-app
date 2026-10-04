@@ -20,3 +20,10 @@ language sql as $$ insert into net.calls (url, body) values (url, body) returnin
 grant usage on schema net to public;
 grant insert, select on net.calls to public;
 grant usage on sequence net.calls_id_seq to public;
+-- pg_cron stand-in
+create schema cron;
+create table cron.job (jobid bigserial primary key, jobname text, schedule text, command text);
+create function cron.schedule(job_name text, schedule text, command text) returns bigint
+language sql as $$ insert into cron.job (jobname, schedule, command) values (job_name, schedule, command) returning jobid $$;
+create function cron.unschedule(job_id bigint) returns boolean
+language sql as $$ delete from cron.job where jobid = job_id returning true $$;
