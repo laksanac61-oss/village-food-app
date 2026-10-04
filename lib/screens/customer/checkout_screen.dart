@@ -4,6 +4,7 @@ import 'package:latlong2/latlong.dart';
 import '../../core/api.dart';
 import '../../core/labels.dart';
 import '../../core/models.dart';
+import '../../core/schedule.dart';
 import '../../widgets/busy.dart';
 import '../../widgets/common.dart';
 import '../../widgets/maps.dart';
@@ -31,6 +32,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   SavedAddress? _picked;
   late Shop _shop = widget.shop;
   bool _noRiders = false;
+
+  /// Booked time; null orders for as soon as possible. A closed shop only takes bookings.
+  late DateTime? _when = widget.shop.isOpen ? null : _defaultSlot();
 
   @override
   void initState() {
@@ -122,6 +126,82 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     Api.saveHomePin(p.latitude, p.longitude).ignore(); // remembered for next time
   }
 
+  static DateTime _defaultSlot() {
+    // next quarter hour at least 45 minutes away, so there is time to fill in the form
+    final t = DateTime.now().add(const Duration(minutes: 45));
+    final up = (15 - t.minute % 15) % 15;
+    return DateTime(t.year, t.month, t.day, t.hour, t.minute + up);
+  }
+
+  Future<void> _pickTime() async {
+    final now = DateTime.now();
+    final start = _when ?? _defaultSlot();
+    final day = await showDatePicker(
+      context: context,
+      initialDate: start,
+      firstDate: DateTime(now.year, now.month, now.day),
+      lastDate: now.add(const Duration(days: 2)),
+      helpText: 'จองวันไหน',
+    );
+    if (day == null || !mounted) return;
+    final time = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.fromDateTime(start),
+      helpText: 'รับอาหารกี่โมง',
+    );
+    if (time == null || !mounted) return;
+    final picked = DateTime(day.year, day.month, day.day, time.hour, time.minute);
+    if (picked.isBefore(DateTime.now().add(minBookAhead))) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('จองล่วงหน้าอย่างน้อย 30 นาทีนะคะ')));
+      return;
+    }
+    setState(() => _when = picked);
+  }
+
+  /// A neighbour already booked a time within 30 minutes: ask whether to share that round.
+  /// Returns false when the customer backs out.
+  Future<bool> _offerNeighbourRound() async {
+    final near = await Api.nearbyPreorder(widget.shop.id, _when!, _home!).catchError((_) => null);
+    if (near == null || !mounted || near.slot.isBefore(DateTime.now().add(minBookAhead))) return true;
+    final gap = near.slot.difference(_when!).inMinutes.abs();
+    final choice = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        icon: const Icon(Icons.groups, size: 40),
+        title: const Text('มีบ้านใกล้คุณจองเวลาใกล้กัน'),
+        content: Text(
+          'ร้านมีออเดอร์ไปส่งบ้านใกล้คุณ (ไม่เกิน 1 กม.) เวลา ${slotLabel(near.slot)} น. อยู่แล้ว '
+          'ห่างจากเวลาที่คุณเลือก $gap นาที\n\n'
+          'รับอาหารเวลา ${hhmm(near.slot)} น. พร้อมรอบนั้นได้ไหมคะ ร้านจะทำและส่งรอบเดียวกัน',
+        ),
+        actionsOverflowDirection: VerticalDirection.down,
+        actions: [
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, 'join'),
+            child: Text('ได้ รับเวลา ${hhmm(near.slot)} น.'),
+          ),
+          OutlinedButton(
+            onPressed: () => Navigator.pop(ctx, 'keep'),
+            child: Text('ขอเวลาเดิม ${hhmm(_when!)} น.'),
+          ),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('ยกเลิก')),
+        ],
+      ),
+    );
+    if (!mounted || choice == null) return false;
+    if (choice == 'join') setState(() => _when = near.slot);
+    return true;
+  }
+
+  /// "About N minutes" from the shop pin to the home pin, when both are known.
+  String? get _travelNote {
+    final shop = _shop.location;
+    if (_fulfillment != 'delivery' || shop == null || _home == null) return null;
+    final km = distanceKm(shop, _home!);
+    return 'บ้านห่างจากร้านประมาณ ${km.toStringAsFixed(1)} กม. ไรเดอร์ใช้เวลาราว ${travelMinutes(km)} นาที';
+  }
+
   double get _food => widget.cart.fold(0, (s, l) => s + l.item.price * l.qty);
 
   Future<void> _place() async {
@@ -130,7 +210,15 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           .showSnackBar(const SnackBar(content: Text('กรุณาเลือกโซนและใส่ที่อยู่สำหรับจัดส่ง')));
       return;
     }
-    if (_fulfillment == 'delivery' && _deliverySlow && !await _confirmSlowDelivery()) return;
+    if (_when == null && _fulfillment == 'delivery' && _deliverySlow && !await _confirmSlowDelivery()) return;
+    if (!mounted) return;
+    if (_when != null && DateTime.now().add(minBookAhead).isAfter(_when!)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('เวลาจองต้องห่างจากตอนนี้อย่างน้อย 30 นาที กรุณาเลือกเวลาใหม่')),
+      );
+      return;
+    }
+    if (_when != null && _fulfillment == 'delivery' && _home != null && !await _offerNeighbourRound()) return;
     if (!mounted) return;
     setState(() => _busy = true);
     late String id;
@@ -143,6 +231,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         foodPayment: _foodPayment,
         deliveryPayment: _deliveryPayment,
         addressNote: _address.text.trim(),
+        scheduledFor: _when,
       );
       if (_fulfillment == 'delivery' && _home != null) {
         await Api.setDropoff(id, _home!.latitude, _home!.longitude);
@@ -179,6 +268,42 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               trailing: Text(baht(l.item.price * l.qty)),
             ),
           const Divider(),
+          const Text('สั่งตอนนี้ หรือจองเวลาล่วงหน้า'),
+          SegmentedButton<bool>(
+            segments: [
+              ButtonSegment(
+                value: false,
+                label: const Text('สั่งเลย'),
+                icon: const Icon(Icons.flash_on),
+                enabled: _shop.isOpen,
+              ),
+              ButtonSegment(
+                value: true,
+                label: const Text('จองล่วงหน้า'),
+                icon: const Icon(Icons.schedule),
+                enabled: _shop.acceptsPreorder,
+              ),
+            ],
+            selected: {_when != null},
+            onSelectionChanged: (s) => setState(() => _when = s.first ? (_when ?? _defaultSlot()) : null),
+          ),
+          if (!_shop.isOpen)
+            const Padding(
+              padding: EdgeInsets.only(top: 4),
+              child: Text('ร้านปิดอยู่ตอนนี้ จองล่วงหน้าได้', style: TextStyle(color: Colors.grey)),
+            ),
+          if (_when != null)
+            Card(
+              color: Theme.of(context).colorScheme.secondaryContainer,
+              child: ListTile(
+                leading: const Icon(Icons.event_available),
+                title: Text('รับอาหาร ${slotLabel(_when!)} น.'),
+                subtitle: const Text('ร้านจะเตรียมวัตถุดิบและเริ่มทำให้ทันเวลา'),
+                trailing: TextButton(onPressed: _pickTime, child: const Text('เปลี่ยนเวลา')),
+                onTap: _pickTime,
+              ),
+            ),
+          const SizedBox(height: 12),
           const Text('รับอาหารแบบไหน'),
           SegmentedButton<String>(
             segments: const [
@@ -193,7 +318,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             onSelectionChanged: (s) => setState(() => _fulfillment = s.first),
           ),
           if (_fulfillment == 'delivery') ...[
-            if (_deliverySlow) BusyNotice(shop: _shop, noRiders: _noRiders),
+            if (_deliverySlow && _when == null) BusyNotice(shop: _shop, noRiders: _noRiders),
             if (_saved.isNotEmpty) ...[
               const SizedBox(height: 12),
               const Text('ส่งที่เดิม แตะเพื่อเลือก'),
@@ -239,6 +364,11 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             ),
             const SizedBox(height: 8),
             if (_home != null) OrderMap(dropoff: _home, height: 160),
+            if (_travelNote != null)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: Text(_travelNote!, style: const TextStyle(color: Colors.grey)),
+              ),
             OutlinedButton.icon(
               icon: const Icon(Icons.location_on),
               label: Text(
@@ -272,7 +402,10 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           if (_fulfillment == 'delivery') _row('ค่าส่ง', baht(fee)),
           _row('รวม', baht(_food + fee), bold: true),
           const SizedBox(height: 16),
-          FilledButton(onPressed: _busy ? null : _place, child: const Text('สั่งอาหาร')),
+          FilledButton(
+            onPressed: _busy ? null : _place,
+            child: Text(_when == null ? 'สั่งอาหาร' : 'จองอาหาร ${slotLabel(_when!)} น.'),
+          ),
         ],
       ),
     );

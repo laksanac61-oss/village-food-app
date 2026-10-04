@@ -325,3 +325,70 @@ do $$ begin
   end if;
 end $$;
 \echo ALL SIGNUP AS CHECKS PASSED
+
+-- ---------------------------------------------------------------- pre-orders (0007)
+set role app_user;
+set test.uid = '00000000-0000-0000-0000-00000000000b';
+update shops set is_open = false where id = '10000000-0000-0000-0000-000000000001';
+set test.uid = '00000000-0000-0000-0000-00000000000c';
+-- closed shop: ordering now fails, booking ahead works
+do $$ begin
+  perform place_order('10000000-0000-0000-0000-000000000001',
+    '[{"menu_item_id":"30000000-0000-0000-0000-000000000001","qty":1}]',
+    'delivery', '20000000-0000-0000-0000-000000000001', 'cash', 'cash', 'now');
+  raise exception 'FAIL: ordered from a closed shop';
+exception when others then
+  if sqlerrm not like 'shop is closed%' then raise; end if;
+end $$;
+do $$ begin
+  perform place_order('10000000-0000-0000-0000-000000000001',
+    '[{"menu_item_id":"30000000-0000-0000-0000-000000000001","qty":1}]',
+    'delivery', '20000000-0000-0000-0000-000000000001', 'cash', 'cash', 'too soon', now() + interval '10 minutes');
+  raise exception 'FAIL: booked less than 30 minutes ahead';
+exception when others then
+  if sqlerrm not like 'book at least%' then raise; end if;
+end $$;
+select place_order('10000000-0000-0000-0000-000000000001',
+  '[{"menu_item_id":"30000000-0000-0000-0000-000000000001","qty":3}]',
+  'delivery', '20000000-0000-0000-0000-000000000001', 'cash', 'cash', 'pre A',
+  date_trunc('hour', now()) + interval '3 hours') as pre_a \gset
+select set_order_dropoff(:'pre_a', 13.7500, 100.5000);
+do $$ begin
+  if (select scheduled_for from orders where address_note = 'pre A') is null then
+    raise exception 'FAIL: booking time not saved';
+  end if;
+end $$;
+-- a neighbour about 300 m away asks for 20 minutes later and is offered A's time
+set test.uid = '00000000-0000-0000-0000-00000000000e';
+do $$
+declare r record;
+begin
+  select * into r from nearby_preorder('10000000-0000-0000-0000-000000000001',
+    date_trunc('hour', now()) + interval '3 hours 20 minutes', 13.7527, 100.5000);
+  if r.slot is distinct from date_trunc('hour', now()) + interval '3 hours' or r.orders <> 1 then
+    raise exception 'FAIL: nearby booking not offered (%)', r;
+  end if;
+  -- 40 minutes apart is too far in time
+  if exists (select 1 from nearby_preorder('10000000-0000-0000-0000-000000000001',
+               date_trunc('hour', now()) + interval '3 hours 40 minutes', 13.7527, 100.5000)) then
+    raise exception 'FAIL: offered a time more than 30 minutes away';
+  end if;
+  -- 5 km away is not a neighbour
+  if exists (select 1 from nearby_preorder('10000000-0000-0000-0000-000000000001',
+               date_trunc('hour', now()) + interval '3 hours 10 minutes', 13.7950, 100.5000)) then
+    raise exception 'FAIL: offered a far-away booking';
+  end if;
+end $$;
+-- the shop can switch pre-orders off
+set test.uid = '00000000-0000-0000-0000-00000000000b';
+update shops set accepts_preorder = false, prep_minutes = 30 where id = '10000000-0000-0000-0000-000000000001';
+set test.uid = '00000000-0000-0000-0000-00000000000c';
+do $$ begin
+  perform place_order('10000000-0000-0000-0000-000000000001',
+    '[{"menu_item_id":"30000000-0000-0000-0000-000000000001","qty":1}]',
+    'pickup', null, 'cash', 'cash', 'off', now() + interval '2 hours');
+  raise exception 'FAIL: booked while pre-orders are off';
+exception when others then
+  if sqlerrm not like 'shop does not take pre-orders%' then raise; end if;
+end $$;
+\echo ALL PRE-ORDER CHECKS PASSED

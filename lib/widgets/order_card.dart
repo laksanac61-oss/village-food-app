@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../core/labels.dart';
 import '../core/models.dart';
+import '../core/schedule.dart';
 
 class OrderCard extends StatelessWidget {
   const OrderCard({super.key, required this.order, this.title, this.onTap, this.actions = const []});
@@ -36,6 +37,15 @@ class OrderCard extends StatelessWidget {
                   Text(time, style: const TextStyle(color: Colors.grey)),
                 ],
               ),
+              if (o.scheduledFor != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 4),
+                  child: Chip(
+                    avatar: const Icon(Icons.event_available, size: 18),
+                    label: Text('จองรับ ${slotLabel(o.scheduledFor!)} น.'),
+                    visualDensity: VisualDensity.compact,
+                  ),
+                ),
               const SizedBox(height: 4),
               Text(
                 orderStatusLabel[o.status] ?? o.status,
