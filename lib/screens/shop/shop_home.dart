@@ -118,7 +118,7 @@ class _GettingStarted extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            hasMenu ? 'อีกขั้นเดียว ร้านก็พร้อมขาย' : 'ยินดีด้วย ร้านได้รับอนุมัติแล้ว 🎉',
+            hasMenu ? 'อีกขั้นเดียว ร้านก็พร้อมขาย' : 'ยินดีด้วย ร้านได้รับอนุมัติแล้ว',
             style: Theme.of(context).textTheme.titleMedium,
           ),
           const SizedBox(height: 6),

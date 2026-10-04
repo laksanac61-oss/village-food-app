@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../core/api.dart';
 import '../core/labels.dart';
@@ -102,6 +103,9 @@ class WelcomeDialog extends StatelessWidget {
   );
 }
 
+/// Step-by-step guide for shops, published with the web app (web/manual/shop.html).
+const shopManualUrl = 'https://cozy-melomakarona-cafbc6.netlify.app/manual/shop.html';
+
 /// Drawer shared by every role's home screen.
 class AppDrawer extends StatelessWidget {
   const AppDrawer({super.key});
@@ -130,6 +134,14 @@ class AppDrawer extends StatelessWidget {
           leading: const Icon(Icons.delivery_dining),
           title: const Text('ไรเดอร์ (รับงานส่ง)'),
           onTap: () => _open(context, const RiderScreen()),
+        ),
+        ListTile(
+          leading: const Icon(Icons.menu_book),
+          title: const Text('คู่มือร้านค้า'),
+          onTap: () {
+            Navigator.pop(context);
+            launchUrl(Uri.parse(shopManualUrl));
+          },
         ),
         ListTile(
           leading: const Icon(Icons.logout),

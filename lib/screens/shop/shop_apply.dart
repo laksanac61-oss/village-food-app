@@ -68,7 +68,7 @@ class _Status extends StatelessWidget {
       'approved' => (
         Icons.verified,
         Colors.green,
-        'ร้านของคุณได้รับอนุมัติแล้ว 🎉',
+        'ร้านของคุณได้รับอนุมัติแล้ว',
         'เข้าหน้าร้านเพื่อเพิ่มเมนูและเปิดรับออเดอร์ได้เลย',
       ),
       'rejected' => (
@@ -135,7 +135,10 @@ class _Status extends StatelessWidget {
           OutlinedButton(onPressed: onEdit, child: const Text('แก้ไขข้อมูล')),
         if (asHome && !shop.isApproved) ...[
           const SizedBox(height: 16),
-          const Text('ระหว่างรอ คุณยังสั่งอาหารได้ตามปกติ ที่เมนู ☰ มุมซ้ายบน', textAlign: TextAlign.center),
+          const Text(
+            'ระหว่างรอ คุณยังสั่งอาหารได้ตามปกติ ที่ปุ่มสามขีดมุมซ้ายบน',
+            textAlign: TextAlign.center,
+          ),
         ],
       ],
     );
