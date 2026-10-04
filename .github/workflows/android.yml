@@ -2,13 +2,15 @@ name: Android APK
 on:
   workflow_dispatch:
   push:
-    branches: [main]
+    branches: [main, android-apk]
   pull_request:
     paths: [android/**, pubspec.yaml, .github/workflows/android.yml]
 
 jobs:
   apk:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
@@ -38,3 +40,12 @@ jobs:
         with:
           name: ban-dung-apk
           path: ban-dung.apk
+      # the latest APK also goes to the "apk" branch (one commit, replaced each time) so it can be fetched with git
+      - name: Publish to the apk branch
+        if: github.event_name != 'pull_request'
+        run: |
+          mkdir publish && cp ban-dung.apk publish/ && cd publish
+          printf 'Built from %s (run %s)\n' "$GITHUB_SHA" "$GITHUB_RUN_NUMBER" > BUILD.txt
+          git init -q -b apk && git add .
+          git -c user.name=github-actions -c user.email=github-actions@users.noreply.github.com commit -qm "APK run $GITHUB_RUN_NUMBER"
+          git push -qf "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" apk
