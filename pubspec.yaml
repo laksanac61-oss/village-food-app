@@ -42,6 +42,7 @@ dependencies:
   geolocator: ^14.1.1
   url_launcher: ^6.3.3
   video_player: ^2.14.1
+  web: ^1.1.1
 
 dev_dependencies:
   flutter_test:
@@ -61,6 +62,7 @@ dev_dependencies:
 flutter:
   assets:
     - assets/images/logo.png
+    - assets/sounds/new_order.wav
 
   fonts:
     - family: Sarabun
