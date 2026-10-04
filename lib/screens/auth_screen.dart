@@ -1,7 +1,10 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../core/api.dart';
+import 'home_router.dart' show androidApkUrl;
 
 class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key});
@@ -105,6 +108,12 @@ class _AuthScreenState extends State<AuthScreen> {
                   onPressed: () => setState(() => _register = !_register),
                   child: Text(_register ? 'มีบัญชีแล้ว? เข้าสู่ระบบ' : 'ยังไม่มีบัญชี? สมัครสมาชิก'),
                 ),
+                if (kIsWeb)
+                  TextButton.icon(
+                    icon: const Icon(Icons.android),
+                    label: const Text('ดาวน์โหลดแอปสำหรับมือถือ Android'),
+                    onPressed: () => launchUrl(Uri.parse(androidApkUrl)),
+                  ),
               ],
             ),
           ),
