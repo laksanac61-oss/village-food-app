@@ -1,0 +1,268 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>คู่มือร้านค้า ส่งอาหารบ้านดุง</title>
+<meta name="description" content="วิธีใช้แอปส่งอาหารบ้านดุง สำหรับร้านค้า ตั้งแต่สมัคร เพิ่มเมนู รับออเดอร์ จนถึงจองล่วงหน้า">
+<link rel="icon" href="../favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --green: #1e8c5a; --green-dark: #146b44; --green-soft: #e6f4ec;
+    --orange: #f28c28; --orange-soft: #fff1e3;
+    --text: #1d2621; --muted: #5b6b62; --bg: #f7faf8; --card: #ffffff; --line: #dbe7e0;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --green: #4cc38a; --green-dark: #7ad7a8; --green-soft: #183326;
+      --orange: #ffad5c; --orange-soft: #3a2a17;
+      --text: #e8efea; --muted: #a8b8ae; --bg: #101713; --card: #18221c; --line: #2a3a31;
+    }
+  }
+  :root[data-theme="dark"] {
+    --green: #4cc38a; --green-dark: #7ad7a8; --green-soft: #183326;
+    --orange: #ffad5c; --orange-soft: #3a2a17;
+    --text: #e8efea; --muted: #a8b8ae; --bg: #101713; --card: #18221c; --line: #2a3a31;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font-family: 'Sarabun', system-ui, sans-serif;
+         font-size: 18px; line-height: 1.65; }
+  .wrap { max-width: 760px; margin: 0 auto; padding: 0 16px 64px; }
+  header { text-align: center; padding: 28px 0 12px; }
+  header img { width: 132px; height: 132px; border-radius: 50%; background: #fff; }
+  h1 { font-size: 28px; margin: 12px 0 4px; color: var(--green-dark); }
+  .lead { color: var(--muted); margin: 0 0 12px; }
+  .btn { display: inline-block; background: var(--green); color: #fff; text-decoration: none; font-weight: 600;
+         padding: 10px 22px; border-radius: 999px; margin: 4px; }
+  .btn.ghost { background: transparent; color: var(--green); border: 2px solid var(--green); }
+  nav.toc { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 12px 18px; margin: 20px 0; }
+  nav.toc b { display: block; margin-bottom: 4px; }
+  nav.toc ol { margin: 0; padding-left: 22px; }
+  nav.toc a { color: var(--green-dark); text-decoration: none; }
+  section { background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 18px 18px 8px; margin: 18px 0; }
+  h2 { font-size: 22px; margin: 0 0 8px; display: flex; gap: 10px; align-items: center; }
+  h2 .n { flex: none; width: 34px; height: 34px; border-radius: 50%; background: var(--green); color: #fff;
+          display: inline-flex; align-items: center; justify-content: center; font-size: 18px; }
+  ol.steps, ul.points { padding-left: 24px; margin: 8px 0 12px; }
+  ol.steps li, ul.points li { margin: 4px 0; }
+  .shots { display: flex; flex-wrap: wrap; gap: 14px; justify-content: center; margin: 12px 0 14px; }
+  figure { margin: 0; width: min(290px, 100%); text-align: center; }
+  figure img { width: 100%; height: auto; border-radius: 22px; border: 6px solid #222; background: #222;
+               box-shadow: 0 6px 18px rgba(0,0,0,.12); }
+  figcaption { font-size: 15px; color: var(--muted); margin-top: 6px; }
+  .tip { background: var(--green-soft); border-radius: 12px; padding: 10px 14px; margin: 10px 0 14px; }
+  .warn { background: var(--orange-soft); border-radius: 12px; padding: 10px 14px; margin: 10px 0 14px; }
+  .key { display: inline-block; background: var(--green-soft); color: var(--green-dark); border-radius: 8px;
+         padding: 0 8px; font-weight: 600; white-space: nowrap; }
+  table { width: 100%; border-collapse: collapse; margin: 8px 0 14px; font-size: 16px; }
+  th, td { border-bottom: 1px solid var(--line); padding: 8px 6px; text-align: left; vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; }
+  .check li { list-style: none; margin-left: -22px; }
+  .check li::before { content: ""; display: inline-block; width: 16px; height: 16px; border: 2px solid var(--green);
+                      border-radius: 4px; margin-right: 10px; vertical-align: -2px; }
+  footer { text-align: center; color: var(--muted); font-size: 15px; margin-top: 28px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <img src="../assets/assets/images/logo.png" alt="ส่งอาหารบ้านดุง">
+    <h1>คู่มือร้านค้า</h1>
+    <p class="lead">แอปส่งอาหารบ้านดุง สำหรับร้านอาหารในหมู่บ้าน ตั้งแต่สมัคร เพิ่มเมนู รับออเดอร์ จนถึงรับจองล่วงหน้า</p>
+    <a class="btn" href="../">เปิดแอป</a>
+    <a class="btn ghost" href="#test">รายการทดสอบ</a>
+  </header>
+
+  <p class="tip">รูปในคู่มือนี้เป็นตัวอย่าง (ร้านป้าแดง) หน้าจอจริงจะเป็นชื่อร้านและเมนูของคุณ ใช้ได้ทั้งในมือถือและคอมพิวเตอร์ ไม่ต้องติดตั้งแอป</p>
+
+  <nav class="toc">
+    <b>สารบัญ</b>
+    <ol>
+      <li><a href="#signup">สมัครสมาชิกเป็นร้านค้า</a></li>
+      <li><a href="#apply">กรอกข้อมูลร้าน</a></li>
+      <li><a href="#approve">รอผู้ดูแลอนุมัติ</a></li>
+      <li><a href="#menu">เพิ่มเมนูอาหาร</a></li>
+      <li><a href="#open">เปิด-ปิดร้าน</a></li>
+      <li><a href="#orders">รับออเดอร์และรับเงิน</a></li>
+      <li><a href="#busy">แจ้งลูกค้าเมื่อไรเดอร์ติดงาน (busy)</a></li>
+      <li><a href="#preorder">ออเดอร์จองล่วงหน้า</a></li>
+      <li><a href="#settings">ตั้งค่าร้านและวิดีโอแนะนำร้าน</a></li>
+      <li><a href="#help">เปิดคู่มือจากในแอป และปัญหาที่พบบ่อย</a></li>
+      <li><a href="#test">รายการทดสอบสำหรับร้านค้า</a></li>
+    </ol>
+  </nav>
+
+  <section id="signup">
+    <h2><span class="n">1</span>สมัครสมาชิกเป็นร้านค้า</h2>
+    <ol class="steps">
+      <li>เปิดแอป กด <span class="key">ยังไม่มีบัญชี? สมัครสมาชิก</span></li>
+      <li>ช่อง "สมัครเป็น" เลือก <span class="key">ร้านค้า (ขอเปิดร้านขายอาหาร)</span></li>
+      <li>ใส่ชื่อ เบอร์โทร และตั้งรหัสผ่านอย่างน้อย 6 ตัว</li>
+      <li>กด <span class="key">สมัครสมาชิก</span> ไม่ต้องใช้อีเมล ครั้งต่อไปเข้าสู่ระบบด้วยเบอร์โทรและรหัสผ่าน</li>
+    </ol>
+    <div class="shots">
+      <figure><img src="img/signup_role.webp" alt="เลือกสมัครเป็นร้านค้า" loading="lazy"><figcaption>เลือก "ร้านค้า"</figcaption></figure>
+      <figure><img src="img/signup.webp" alt="กรอกชื่อ เบอร์โทร รหัสผ่าน" loading="lazy"><figcaption>กรอกข้อมูลแล้วกดสมัครสมาชิก</figcaption></figure>
+    </div>
+  </section>
+
+  <section id="apply">
+    <h2><span class="n">2</span>กรอกข้อมูลร้าน</h2>
+    <p>สมัครเสร็จ แอปจะเปิดหน้า "สมัครเปิดร้าน" ให้ทันที ช่องที่มี * ต้องกรอก</p>
+    <ul class="points">
+      <li><b>ชื่อร้าน และประเภทอาหาร</b> ลูกค้าจะเห็นใต้ชื่อร้าน</li>
+      <li><b>แนะนำร้าน / เมนูเด่น และเวลาเปิด-ปิด</b> เช่น 07:00-19:00</li>
+      <li><b>โลโก้ และรูปหน้าร้าน</b> ถ่ายแนวนอนให้เห็นป้ายร้าน ช่วยให้ลูกค้ามั่นใจ</li>
+      <li><b>ที่ตั้งร้าน</b> พิมพ์จุดสังเกต แล้วกด <span class="key">ปักหมุดตำแหน่งร้าน (GPS)</span> ควรกดตอนอยู่ที่ร้าน ระบบใช้หมุดนี้คำนวณเวลาไปส่ง</li>
+      <li><b>เบอร์โทรร้าน และพร้อมเพย์</b> เบอร์มือถือหรือเลขบัตรประชาชนที่ผูกพร้อมเพย์ ลูกค้าจะสแกน QR จ่ายเข้าบัญชีนี้โดยตรง</li>
+      <li><b>รับเงินสดด้วย</b> เปิดไว้ถ้ารับเงินสดได้</li>
+    </ul>
+    <p>กรอกครบแล้วกด <span class="key">ส่งคำขอเปิดร้าน</span></p>
+    <div class="shots">
+      <figure><img src="img/apply1.webp" alt="ฟอร์มข้อมูลร้าน ส่วนบน" loading="lazy"><figcaption>ชื่อร้าน ประเภทอาหาร รูปร้าน</figcaption></figure>
+      <figure><img src="img/apply3.webp" alt="ฟอร์มข้อมูลร้าน ส่วนล่าง" loading="lazy"><figcaption>ปักหมุดร้าน พร้อมเพย์ แล้วส่งคำขอ</figcaption></figure>
+    </div>
+    <p class="tip">ตรวจเลขพร้อมเพย์ให้ถูกต้องเสมอ ถ้าผิด เงินจากลูกค้าจะโอนไม่เข้าร้าน</p>
+  </section>
+
+  <section id="approve">
+    <h2><span class="n">3</span>รอผู้ดูแลอนุมัติ</h2>
+    <p>หลังส่งคำขอ จะเห็นหน้า "ส่งคำขอแล้ว รอผู้ดูแลตรวจสอบ" ระหว่างนี้ยังแก้ข้อมูลได้ที่ปุ่ม <span class="key">แก้ไขข้อมูล</span> และยังสั่งอาหารได้ตามปกติจากปุ่มสามขีดมุมซ้ายบน</p>
+    <p>เมื่ออนุมัติแล้ว เปิดแอปใหม่ (หรือดึงหน้าจอลงเพื่อรีเฟรช) จะเข้าหน้าร้านของคุณ พร้อมรายการสิ่งที่ต้องทำต่อ ถ้าไม่ผ่าน จะเห็นเหตุผลจากผู้ดูแล แก้ไขแล้วกดส่งใหม่ได้</p>
+    <div class="shots">
+      <figure><img src="img/pending.webp" alt="รอผู้ดูแลตรวจสอบ" loading="lazy"><figcaption>รอผู้ดูแลตรวจ</figcaption></figure>
+      <figure><img src="img/start.webp" alt="ร้านได้รับอนุมัติแล้ว" loading="lazy"><figcaption>อนุมัติแล้ว: เพิ่มเมนู แล้วเปิดร้าน</figcaption></figure>
+    </div>
+  </section>
+
+  <section id="menu">
+    <h2><span class="n">4</span>เพิ่มเมนูอาหาร</h2>
+    <ol class="steps">
+      <li>ไปที่แท็บ <span class="key">เมนู</span></li>
+      <li>กดปุ่ม <span class="key">+</span> มุมขวาล่าง</li>
+      <li>ใส่ชื่อเมนู รายละเอียด (เช่น เผ็ดน้อย/เผ็ดมาก บอกได้) และราคา</li>
+      <li>กด <span class="key">เลือกรูป</span> ใส่รูปอาหาร แล้วกด <span class="key">บันทึก</span></li>
+    </ol>
+    <p>ของหมดชั่วคราว ไม่ต้องลบเมนู แค่ปิดสวิตช์ข้างเมนูให้เป็น "หมด" ลูกค้าจะสั่งเมนูนั้นไม่ได้ กดที่เมนูเพื่อแก้ไขหรือลบ</p>
+    <div class="shots">
+      <figure><img src="img/menu.webp" alt="รายการเมนู" loading="lazy"><figcaption>สวิตช์ มีขาย / หมด</figcaption></figure>
+      <figure><img src="img/menu_add.webp" alt="เพิ่มเมนู" loading="lazy"><figcaption>หน้าต่างเพิ่มเมนู</figcaption></figure>
+    </div>
+  </section>
+
+  <section id="open">
+    <h2><span class="n">5</span>เปิด-ปิดร้าน</h2>
+    <p>สวิตช์ <span class="key">เปิดร้าน / ปิดร้าน</span> อยู่มุมขวาบนของหน้าร้าน</p>
+    <ul class="points">
+      <li><b>เปิดร้าน</b> ลูกค้าเห็นร้านและสั่งได้ทันที</li>
+      <li><b>ปิดร้าน</b> ลูกค้าสั่งตอนนี้ไม่ได้ แต่ยังจองล่วงหน้าได้ ถ้าร้านเปิดรับจองไว้ (ดูข้อ 8)</li>
+    </ul>
+    <p class="tip">เปิดสวิตช์ตอนร้านพร้อมขาย และปิดทุกครั้งเมื่อปิดร้าน ลูกค้าจะได้ไม่สั่งตอนที่ร้านทำให้ไม่ได้</p>
+  </section>
+
+  <section id="orders">
+    <h2><span class="n">6</span>รับออเดอร์และรับเงิน</h2>
+    <p>ออเดอร์ใหม่จะขึ้นที่แท็บ <span class="key">ออเดอร์</span> เองโดยไม่ต้องกดรีเฟรช แต่ละออเดอร์บอกเมนู จำนวน หมายเหตุ ยอดเงิน วิธีจ่าย และที่อยู่</p>
+    <table>
+      <tr><th>ปุ่ม</th><th>ใช้เมื่อ</th></tr>
+      <tr><td><span class="key">ดูสลิป</span></td><td>ลูกค้าโอนผ่าน QR แล้วแนบสลิป เปิดดูรูปสลิป</td></tr>
+      <tr><td><span class="key">ยืนยันได้รับเงิน</span></td><td>เช็กแล้วว่าเงินเข้าบัญชีจริง</td></tr>
+      <tr><td><span class="key">สลิปไม่ถูกต้อง</span></td><td>ยอดไม่ตรงหรือเงินไม่เข้า ลูกค้าจะเห็นข้อความให้ส่งสลิปใหม่</td></tr>
+      <tr><td><span class="key">ได้รับเงินสดแล้ว</span></td><td>ลูกค้าจ่ายเงินสด รับเงินแล้ว</td></tr>
+      <tr><td><span class="key">รับออเดอร์</span> / <span class="key">ปฏิเสธ</span></td><td>ยืนยันว่าทำให้ได้ หรือทำไม่ได้ (เช่น ของหมด)</td></tr>
+      <tr><td><span class="key">เริ่มทำอาหาร</span></td><td>เริ่มทำ ลูกค้าเห็นสถานะ "กำลังทำอาหาร"</td></tr>
+      <tr><td><span class="key">อาหารพร้อม</span></td><td>ทำเสร็จ ถ้าเป็นส่งถึงบ้าน ไรเดอร์จะเห็นงานและกดรับไปส่ง</td></tr>
+      <tr><td><span class="key">ลูกค้ารับแล้ว</span></td><td>ออเดอร์แบบมารับเองที่ร้าน เมื่อลูกค้ามารับแล้ว</td></tr>
+    </table>
+    <div class="shots">
+      <figure><img src="img/orders.webp" alt="หน้าออเดอร์ของร้าน" loading="lazy"><figcaption>ออเดอร์ใหม่ พร้อมสลิปรอตรวจ</figcaption></figure>
+    </div>
+    <p class="warn">ก่อนกด "ยืนยันได้รับเงิน" ให้เปิดแอปธนาคารเช็กว่าเงินเข้าจริงทุกครั้ง สลิปอาจถูกปลอมได้</p>
+  </section>
+
+  <section id="busy">
+    <h2><span class="n">7</span>แจ้งลูกค้าเมื่อไรเดอร์ติดงาน (busy)</h2>
+    <p>ช่วงคนสั่งเยอะหรือไรเดอร์ไม่ว่าง กดปุ่มสีส้ม <span class="key">ไรเดอร์ติดงาน? กดแจ้งลูกค้าว่าร้าน busy</span> แล้วเลือกเวลาประมาณ 30 ถึง 120 นาที</p>
+    <ul class="points">
+      <li>ลูกค้าจะเห็นป้าย busy สีส้มที่ร้าน และตอนสั่งจะเลือกได้ว่า รอได้ / ไปรับเองที่ร้าน / ยกเลิก</li>
+      <li>กลับมาส่งได้แล้ว กด <span class="key">ส่งได้ปกติแล้ว</span> หรือกด <span class="key">เปลี่ยนเวลา</span> เพื่อขยายเวลา</li>
+      <li>ครบเวลาแล้ว ป้าย busy จะหายเอง</li>
+    </ul>
+    <div class="shots">
+      <figure><img src="img/busy_sheet.webp" alt="เลือกเวลา busy" loading="lazy"><figcaption>เลือกว่าจะ busy นานแค่ไหน</figcaption></figure>
+      <figure><img src="img/busy_on.webp" alt="กำลังแจ้ง busy" loading="lazy"><figcaption>กำลังแจ้ง busy ถึงเวลาที่เลือก</figcaption></figure>
+    </div>
+  </section>
+
+  <section id="preorder">
+    <h2><span class="n">8</span>ออเดอร์จองล่วงหน้า</h2>
+    <p>ลูกค้าจองเวลารับอาหารได้ล่วงหน้า 30 นาทีถึง 3 วัน แม้ตอนร้านปิด ช่วยให้ร้านเตรียมวัตถุดิบก่อนช่วงเที่ยงหรือเย็น ออเดอร์จองจะขึ้นป้าย "จองรับ วันนี้ 12:00 น." บนการ์ดออเดอร์</p>
+    <ol class="steps">
+      <li>ที่แท็บ <span class="key">ออเดอร์</span> กดการ์ดสีเขียว <span class="key">จองล่วงหน้า</span> ด้านบน</li>
+      <li>ด้านบนสุด เปิด/ปิด <b>รับจองล่วงหน้า</b> และตั้ง <b>เวลาทำอาหารต่อรอบ</b> (ค่าเริ่มต้น 20 นาที)</li>
+      <li>ดู <b>สรุปวัตถุดิบที่ต้องเตรียม</b> ของแต่ละวัน เช่น กะเพรา 3 จาน ข้าวผัด 2 จาน</li>
+      <li>แต่ละ <b>รอบส่ง</b> บอกเวลา <span class="key">เริ่มทำ</span> และ <span class="key">ออกจากร้าน</span> พร้อมลำดับบ้านที่ต้องไปส่งและเวลาถึงโดยประมาณ</li>
+      <li>อย่าลืมกด <span class="key">รับออเดอร์</span> ทุกออเดอร์จอง รอบไหนยังไม่กดรับจะมีป้ายส้มเตือน</li>
+    </ol>
+    <div class="shots">
+      <figure><img src="img/plan1.webp" alt="แผนรอบจองล่วงหน้า" loading="lazy"><figcaption>รอบส่ง เวลาเริ่มทำ และวัตถุดิบ</figcaption></figure>
+    </div>
+    <p class="tip">ถ้าบ้านใกล้กัน (ไม่เกิน 1 กม.) จองเวลาห่างกันไม่เกิน 30 นาที ระบบจะถามลูกค้าว่ารับพร้อมรอบเดียวกันได้ไหม ถ้าตกลง ร้านทำและส่งรอบเดียว เวลาเดินทางคำนวณจากหมุดร้านกับหมุดบ้านลูกค้า จึงควรปักหมุดร้านให้ตรง</p>
+  </section>
+
+  <section id="settings">
+    <h2><span class="n">9</span>ตั้งค่าร้านและวิดีโอแนะนำร้าน</h2>
+    <p>แท็บ <span class="key">ตั้งค่าร้าน</span> แก้ชื่อร้าน รูป เวลาเปิด-ปิด หมุดร้าน เบอร์โทร และพร้อมเพย์ได้ แก้แล้วกด <span class="key">บันทึก</span> ด้านล่าง</p>
+    <p><b>วิดีโอแนะนำร้าน</b> กด <span class="key">เพิ่มวิดีโอ</span> เลือกคลิปจากมือถือ ลูกค้าจะเห็นปุ่มเล่นวิดีโอที่ร้าน</p>
+    <ul class="points">
+      <li>ยาวไม่เกิน 60 วินาที ไฟล์ไม่เกิน 50 MB (แนะนำถ่ายแนวนอน ความละเอียด 720p)</li>
+      <li>เปลี่ยนวิดีโอได้วันละ 2 ครั้ง การลบวิดีโอไม่นับ</li>
+    </ul>
+    <div class="shots">
+      <figure><img src="img/settings1.webp" alt="ตั้งค่าร้าน วิดีโอแนะนำร้าน" loading="lazy"><figcaption>วิดีโอแนะนำร้าน และข้อมูลร้าน</figcaption></figure>
+      <figure><img src="img/settings2.webp" alt="ตั้งค่าร้าน ส่วนล่าง" loading="lazy"><figcaption>หมุดร้าน พร้อมเพย์ แล้วกดบันทึก</figcaption></figure>
+    </div>
+  </section>
+
+  <section id="help">
+    <h2><span class="n">10</span>เปิดคู่มือจากในแอป และปัญหาที่พบบ่อย</h2>
+    <p>กดปุ่มสามขีดมุมซ้ายบน แล้วเลือก <span class="key">คู่มือร้านค้า</span> จะเปิดหน้านี้ ในเมนูเดียวกันยังมี "สั่งอาหาร" และ "ออกจากระบบ"</p>
+    <div class="shots">
+      <figure><img src="img/drawer.webp" alt="เมนูสามขีด" loading="lazy"><figcaption>เมนูสามขีด มีคู่มือร้านค้า</figcaption></figure>
+    </div>
+    <table>
+      <tr><th>อาการ</th><th>วิธีแก้</th></tr>
+      <tr><td>ลืมรหัสผ่าน</td><td>ติดต่อผู้ดูแลระบบ</td></tr>
+      <tr><td>อนุมัติแล้วแต่ยังเห็นหน้ารออนุมัติ</td><td>ปิดแล้วเปิดแอปใหม่ หรือรีเฟรชหน้าเว็บ</td></tr>
+      <tr><td>ลูกค้าบอกหาร้านไม่เจอ</td><td>เช็กว่าเปิดสวิตช์ "เปิดร้าน" แล้ว และมีเมนูอย่างน้อย 1 รายการ</td></tr>
+      <tr><td>ออเดอร์ไม่ขึ้น</td><td>ดึงหน้าจอลงหรือรีเฟรช เช็กอินเทอร์เน็ต</td></tr>
+      <tr><td>ร้านถูกระงับชั่วคราว</td><td>ติดต่อผู้ดูแลระบบ</td></tr>
+    </table>
+  </section>
+
+  <section id="test">
+    <h2><span class="n">11</span>รายการทดสอบสำหรับร้านค้า</h2>
+    <p>ทำตามทีละข้อ ข้อไหนติดหรือไม่เข้าใจ ถ่ายรูปหน้าจอส่งให้ผู้ดูแลระบบ</p>
+    <ul class="points check">
+      <li>สมัครสมาชิกโดยเลือก "ร้านค้า" ได้</li>
+      <li>กรอกข้อมูลร้าน ใส่โลโก้ รูปหน้าร้าน ปักหมุด และส่งคำขอได้</li>
+      <li>ผู้ดูแลอนุมัติแล้ว เห็นหน้าร้านของตัวเอง</li>
+      <li>เพิ่มเมนูพร้อมรูปและราคาได้อย่างน้อย 3 รายการ</li>
+      <li>ปิดสวิตช์เมนูเป็น "หมด" แล้วลูกค้าสั่งเมนูนั้นไม่ได้</li>
+      <li>เปิดร้าน แล้วให้คนอื่นลองสั่ง เห็นออเดอร์ขึ้นเอง</li>
+      <li>ลูกค้าโอนผ่าน QR แล้วเห็นสลิป กดยืนยันได้รับเงินได้</li>
+      <li>กด รับออเดอร์ เริ่มทำอาหาร อาหารพร้อม ครบทุกขั้น</li>
+      <li>ลองออเดอร์แบบมารับเองที่ร้าน และกด ลูกค้ารับแล้ว</li>
+      <li>กดแจ้ง busy แล้วลูกค้าเห็นป้ายสีส้ม จากนั้นกด ส่งได้ปกติแล้ว</li>
+      <li>ปิดร้าน แล้วให้ลูกค้าลองจองล่วงหน้า เห็นในหน้า "จองล่วงหน้า"</li>
+      <li>อัปโหลดวิดีโอแนะนำร้าน และลูกค้าเปิดดูได้</li>
+    </ul>
+  </section>
+
+  <footer>ส่งอาหารบ้านดุง · คู่มือร้านค้า</footer>
+</div>
+</body>
+</html>
