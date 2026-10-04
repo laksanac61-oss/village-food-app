@@ -73,6 +73,11 @@ class Api {
     await _db.auth.signOut();
   }
 
+  /// LINE backup alerts (migration 0010): whether this member linked LINE, a code to link it, and unlinking.
+  static Future<bool> lineLinked() async => (await _db.rpc('line_linked')) == true;
+  static Future<String> lineLinkCode() async => (await _db.rpc('line_link_code')) as String;
+  static Future<void> lineUnlink() => _db.rpc('line_unlink');
+
   static Future<Map<String, dynamic>?> myProfile() =>
       _db.from('profiles').select().eq('id', uid!).maybeSingle();
 

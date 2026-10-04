@@ -517,3 +517,63 @@ do $$ begin
   if exists (select 1 from push_tokens) then raise exception 'FAIL: token kept after sign-out'; end if;
 end $$;
 \echo ALL PHONE NOTIFICATION CHECKS PASSED
+
+-- ================================================================ LINE backup alerts (0010)
+reset role;
+do $$ begin
+  if (select count(*) from cron.job where jobname = 'line-alerts') <> 1 then raise exception 'FAIL: cron job'; end if;
+end $$;
+grant execute on all functions in schema public to app_user;
+set role app_user;
+set test.uid = '00000000-0000-0000-0000-00000000000b';
+select line_link_code() as code \gset
+do $$ begin
+  if line_linked() then raise exception 'FAIL: linked before sending the code'; end if;
+end $$;
+-- the shop sends the code in the LINE chat (the Edge Function calls this)
+do $$ begin
+  if link_line_user('999999x', 'Ushop') is not null then raise exception 'FAIL: wrong code linked'; end if;
+end $$;
+select link_line_user(:'code', 'Ushop') is not null as linked \gset
+\if :linked
+\else
+  \echo FAIL: code did not link
+  select 1/0;
+\endif
+do $$ begin
+  if not line_linked() then raise exception 'FAIL: not linked'; end if;
+end $$;
+-- a pending order waiting more than 3 minutes is sent once; a fresh one is not
+set test.uid = '00000000-0000-0000-0000-00000000000c';
+select place_order('10000000-0000-0000-0000-000000000001',
+  '[{"menu_item_id":"30000000-0000-0000-0000-000000000001","qty":1}]',
+  'pickup', null, 'cash', 'cash', 'line late') as late_order \gset
+select place_order('10000000-0000-0000-0000-000000000001',
+  '[{"menu_item_id":"30000000-0000-0000-0000-000000000001","qty":1}]',
+  'pickup', null, 'cash', 'cash', 'line fresh') as fresh_order \gset
+reset role;
+update orders set line_alerted_at = now() where id not in (:'late_order', :'fresh_order');
+update orders set created_at = now() - interval '5 minutes' where id = :'late_order';
+truncate net.calls;
+select poke_line_alerts();
+do $$
+declare r record; n int := 0;
+begin
+  if not exists (select 1 from net.calls where url like '%/line-bot') then raise exception 'FAIL: line-bot not woken'; end if;
+  for r in select * from claim_line_alerts() loop
+    n := n + 1;
+    if r.line_user_id <> 'Ushop' or r.minutes < 5 then raise exception 'FAIL: line alert %', r; end if;
+  end loop;
+  if n <> 1 then raise exception 'FAIL: % LINE alerts, expected 1', n; end if;
+  if exists (select 1 from claim_line_alerts()) then raise exception 'FAIL: LINE alert sent twice'; end if;
+  truncate net.calls;
+  perform poke_line_alerts();
+  if exists (select 1 from net.calls) then raise exception 'FAIL: woke line-bot with nothing due'; end if;
+end $$;
+set role app_user;
+set test.uid = '00000000-0000-0000-0000-00000000000b';
+select line_unlink();
+do $$ begin
+  if line_linked() then raise exception 'FAIL: still linked'; end if;
+end $$;
+\echo ALL LINE ALERT CHECKS PASSED
