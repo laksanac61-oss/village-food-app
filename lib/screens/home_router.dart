@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -106,6 +107,9 @@ class WelcomeDialog extends StatelessWidget {
 /// Step-by-step guide for shops, published with the web app (web/manual/shop.html).
 const shopManualUrl = 'https://cozy-melomakarona-cafbc6.netlify.app/manual/shop.html';
 
+/// The Android app, uploaded next to the web app (download/ban-dung.apk in the web zip).
+const androidApkUrl = 'https://cozy-melomakarona-cafbc6.netlify.app/download/ban-dung.apk';
+
 /// Drawer shared by every role's home screen.
 class AppDrawer extends StatelessWidget {
   const AppDrawer({super.key});
@@ -143,6 +147,15 @@ class AppDrawer extends StatelessWidget {
             launchUrl(Uri.parse(shopManualUrl));
           },
         ),
+        if (kIsWeb)
+          ListTile(
+            leading: const Icon(Icons.android),
+            title: const Text('ดาวน์โหลดแอป Android'),
+            onTap: () {
+              Navigator.pop(context);
+              launchUrl(Uri.parse(androidApkUrl));
+            },
+          ),
         ListTile(
           leading: const Icon(Icons.logout),
           title: const Text('ออกจากระบบ'),
