@@ -4,6 +4,7 @@ import 'package:latlong2/latlong.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'models.dart';
+import 'push.dart';
 
 /// All database and storage calls in one place.
 class Api {
@@ -67,7 +68,10 @@ class Api {
   /// Phone numbers are stored and compared as digits only, so "081-234 5678" matches "0812345678".
   static String digitsOnly(String s) => s.replaceAll(RegExp(r'[^0-9]'), '');
 
-  static Future<void> signOut() => _db.auth.signOut();
+  static Future<void> signOut() async {
+    await Push.forget();
+    await _db.auth.signOut();
+  }
 
   static Future<Map<String, dynamic>?> myProfile() =>
       _db.from('profiles').select().eq('id', uid!).maybeSingle();

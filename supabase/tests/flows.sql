@@ -459,3 +459,61 @@ begin
   if exists (select 1 from order_reviews) then raise exception 'FAIL: other members read raw reviews'; end if;
 end $$;
 \echo ALL INCOME AND RATING CHECKS PASSED
+
+-- ================================================================ phone notifications (0009)
+reset role;
+grant select, insert, update, delete on push_tokens, push_events to app_user;
+grant usage on sequence push_events_id_seq to app_user;
+grant execute on all functions in schema public to app_user;
+set role app_user;
+set test.uid = '00000000-0000-0000-0000-00000000000b';
+update shops set is_open = true where id = '10000000-0000-0000-0000-000000000001';
+select save_push_token('shop-phone-token-0123456789');
+do $$ begin
+  perform save_push_token('short');
+  raise exception 'FAIL: short token accepted';
+exception when others then
+  if sqlerrm not like 'bad token%' then raise; end if;
+end $$;
+set test.uid = '00000000-0000-0000-0000-00000000000c';
+-- someone else cannot remove the shop's phone
+select forget_push_token('shop-phone-token-0123456789');
+reset role;   -- tokens are hidden from members, so check as the table owner
+do $$ begin
+  if not exists (select 1 from push_tokens where token = 'shop-phone-token-0123456789') then
+    raise exception 'FAIL: another member removed the shop token';
+  end if;
+end $$;
+set role app_user;
+do $$
+declare v_order uuid; v_event bigint; r record; n int := 0;
+begin
+  v_order := place_order('10000000-0000-0000-0000-000000000001',
+    '[{"menu_item_id":"30000000-0000-0000-0000-000000000001","qty":2}]',
+    'delivery', '20000000-0000-0000-0000-000000000001', 'promptpay', 'cash', 'push test');
+  -- queued events are hidden from members; the call to notify-shop carries the event id
+  select (body->>'event_id')::bigint into v_event from net.calls where url like '%/notify-shop' order by id desc limit 1;
+  if v_event is null then raise exception 'FAIL: notify-shop not called for the new order'; end if;
+  for r in select * from claim_push_event(v_event) loop
+    n := n + 1;
+    if r.token <> 'shop-phone-token-0123456789' or r.title <> 'ออเดอร์ใหม่' or r.body not like '%฿100%' then
+      raise exception 'FAIL: push %', r;
+    end if;
+  end loop;
+  if n <> 1 then raise exception 'FAIL: % pushes for one shop phone', n; end if;
+  if exists (select 1 from claim_push_event(v_event)) then raise exception 'FAIL: event sent twice'; end if;
+  -- the slip is a second notification
+  perform submit_slip(v_order, 'slips/test.jpg');
+  select (body->>'event_id')::bigint into v_event from net.calls order by id desc limit 1;
+  if (select title from claim_push_event(v_event) limit 1) is distinct from 'ลูกค้าส่งสลิปแล้ว' then
+    raise exception 'FAIL: slip push';
+  end if;
+end $$;
+-- the shop signs out on that phone
+set test.uid = '00000000-0000-0000-0000-00000000000b';
+select forget_push_token('shop-phone-token-0123456789');
+reset role;
+do $$ begin
+  if exists (select 1 from push_tokens) then raise exception 'FAIL: token kept after sign-out'; end if;
+end $$;
+\echo ALL PHONE NOTIFICATION CHECKS PASSED
