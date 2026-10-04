@@ -4,6 +4,7 @@ import '../../core/api.dart';
 import '../../core/labels.dart';
 import '../../core/models.dart';
 import '../../widgets/common.dart';
+import '../../widgets/food_photo.dart';
 
 class ShopMenuAdmin extends StatelessWidget {
   const ShopMenuAdmin({super.key, required this.shop, this.onFirstItem});
@@ -42,7 +43,10 @@ class ShopMenuAdmin extends StatelessWidget {
                     ListTile(
                       leading: m.imageUrl == null
                           ? const Icon(Icons.fastfood)
-                          : Image.network(m.imageUrl!, width: 48, height: 48, fit: BoxFit.cover),
+                          : ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: SizedBox(width: 48, height: 48, child: FoodPhoto(m.imageUrl)),
+                            ),
                       title: Text(m.name),
                       subtitle: Text(baht(m.price)),
                       onTap: () => _edit(context, reload, item: m),

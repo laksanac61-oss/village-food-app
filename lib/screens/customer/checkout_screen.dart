@@ -270,6 +270,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           const Divider(),
           const Text('สั่งตอนนี้ หรือจองเวลาล่วงหน้า'),
           SegmentedButton<bool>(
+            showSelectedIcon: false,
             segments: [
               ButtonSegment(
                 value: false,
@@ -298,14 +299,15 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               child: ListTile(
                 leading: const Icon(Icons.event_available),
                 title: Text('รับอาหาร ${slotLabel(_when!)} น.'),
-                subtitle: const Text('ร้านจะเตรียมวัตถุดิบและเริ่มทำให้ทันเวลา'),
-                trailing: TextButton(onPressed: _pickTime, child: const Text('เปลี่ยนเวลา')),
+                subtitle: const Text('แตะเพื่อเปลี่ยนเวลา · ร้านจะเริ่มทำให้ทันเวลา'),
+                trailing: const Icon(Icons.edit_calendar),
                 onTap: _pickTime,
               ),
             ),
           const SizedBox(height: 12),
           const Text('รับอาหารแบบไหน'),
           SegmentedButton<String>(
+            showSelectedIcon: false,
             segments: const [
               ButtonSegment(
                 value: 'delivery',
@@ -371,9 +373,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               ),
             OutlinedButton.icon(
               icon: const Icon(Icons.location_on),
-              label: Text(
-                _home == null ? 'ปักหมุดบ้านบนแผนที่ (ช่วยให้ไรเดอร์หาบ้านเจอ)' : 'เปลี่ยนหมุดบ้าน',
-              ),
+              label: Text(_home == null ? 'ปักหมุดบ้าน (ไรเดอร์หาบ้านง่ายขึ้น)' : 'เปลี่ยนหมุดบ้าน'),
               onPressed: _pickHome,
             ),
             const SizedBox(height: 12),
@@ -400,13 +400,29 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           const Divider(height: 32),
           _row('ค่าอาหาร', baht(_food)),
           if (_fulfillment == 'delivery') _row('ค่าส่ง', baht(fee)),
-          _row('รวม', baht(_food + fee), bold: true),
-          const SizedBox(height: 16),
-          FilledButton(
-            onPressed: _busy ? null : _place,
-            child: Text(_when == null ? 'สั่งอาหาร' : 'จองอาหาร ${slotLabel(_when!)} น.'),
-          ),
         ],
+      ),
+      // the total and the order button stay on screen however long the form is
+      bottomNavigationBar: Material(
+        elevation: 8,
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _row('รวม', baht(_food + fee), bold: true),
+                const SizedBox(height: 8),
+                FilledButton(
+                  style: FilledButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 14)),
+                  onPressed: _busy ? null : _place,
+                  child: Text(_when == null ? 'สั่งอาหาร' : 'จองอาหาร ${slotLabel(_when!)} น.'),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
