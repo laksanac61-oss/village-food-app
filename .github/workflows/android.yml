@@ -41,6 +41,15 @@ jobs:
         with:
           name: ban-dung-apk
           path: ban-dung.apk
+      # the download link in the app points at the "latest" release, replaced on every build
+      - name: Publish the latest release
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view latest >/dev/null 2>&1 || \
+            gh release create latest --title "ส่งอาหารบ้านดุง (Android)" --notes "แอปเวอร์ชันล่าสุด" --latest
+          gh release upload latest ban-dung.apk --clobber
       # the latest APK also goes to the "apk" branch (one commit, replaced each time) so it can be fetched with git
       - name: Publish to the apk branch
         if: github.event_name != 'pull_request'
