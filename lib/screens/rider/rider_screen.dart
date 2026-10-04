@@ -209,6 +209,14 @@ class _RegisterFormState extends State<_RegisterForm> {
     children: [
       Text('สมัครเป็นไรเดอร์', style: Theme.of(context).textTheme.titleLarge),
       const Text('รับงานส่งอาหารจากร้านในหมู่บ้านไปให้ลูกค้า ได้ค่าส่งเต็มจำนวน'),
+      const SizedBox(height: 8),
+      Card(
+        color: Theme.of(context).colorScheme.secondaryContainer,
+        child: const Padding(
+          padding: EdgeInsets.all(12),
+          child: Text('กรอกข้อมูลและแนบรูปให้ครบ แล้วกด "ส่งใบสมัคร" ผู้ดูแลระบบจึงจะตรวจและอนุมัติได้'),
+        ),
+      ),
       TextField(
         controller: _promptpay,
         keyboardType: TextInputType.number,

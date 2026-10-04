@@ -299,3 +299,29 @@ do $$ begin
   if riders_online() < 0 then raise exception 'FAIL: riders_online'; end if;
 end $$;
 \echo ALL SHOP BUSY CHECKS PASSED
+
+-- ---------------------------------------------------------------- signup_as (0006)
+reset role;
+insert into auth.users (id, raw_user_meta_data) values
+  ('00000000-0000-0000-0000-0000000000f1', '{"full_name":"New rider","signup_as":"rider"}'),
+  ('00000000-0000-0000-0000-0000000000f2', '{"full_name":"Plain"}');
+do $$ begin
+  if (select signup_as from profiles where id = '00000000-0000-0000-0000-0000000000f1') <> 'rider' then
+    raise exception 'FAIL: rider choice not saved on profile';
+  end if;
+  if (select signup_as from profiles where id = '00000000-0000-0000-0000-0000000000f2') <> 'customer' then
+    raise exception 'FAIL: default signup_as';
+  end if;
+end $$;
+-- backfill picks up members created before the column existed
+update profiles set signup_as = 'customer' where id = '00000000-0000-0000-0000-0000000000f1';
+\ir 0006_signup_as.sql
+set role app_user;
+set test.uid = '00000000-0000-0000-0000-00000000000a';
+do $$ begin
+  if not exists (select 1 from profiles p where p.signup_as = 'rider'
+                   and not exists (select 1 from riders r where r.id = p.id)) then
+    raise exception 'FAIL: admin cannot see riders without documents';
+  end if;
+end $$;
+\echo ALL SIGNUP AS CHECKS PASSED

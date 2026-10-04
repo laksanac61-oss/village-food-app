@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/api.dart';
 import '../../core/labels.dart';
@@ -33,7 +34,20 @@ class AdminScreen extends StatelessWidget {
                 },
               ),
             ),
-            const Tab(text: 'ไรเดอร์'),
+            Tab(
+              child: FutureBuilder<int>(
+                future: Api.riders().then(
+                  (r) async =>
+                      r.where((x) => x['status'] == 'pending_approval').length +
+                      (await Api.ridersWithoutDocs()).length,
+                ),
+                builder: (context, snap) => Badge(
+                  isLabelVisible: (snap.data ?? 0) > 0,
+                  label: Text('${snap.data ?? 0}'),
+                  child: const Padding(padding: EdgeInsets.only(right: 8), child: Text('ไรเดอร์')),
+                ),
+              ),
+            ),
             const Tab(text: 'ค่าส่ง'),
           ],
         ),
@@ -131,6 +145,8 @@ class _MembersState extends State<_Members> {
     final tags = [
       if (!(m['role'] == 'rider' && rider != null)) _roleLabel[m['role']] ?? m['role'],
       if (rider != null && m['role'] != 'admin') _riderLabel[rider],
+      if (rider == null && m['signup_as'] == 'rider' && m['role'] == 'customer')
+        'ขอเป็นไรเดอร์ (ยังไม่ส่งเอกสาร)',
       if (application != null && application['status'] != 'approved')
         'ขอเปิดร้าน (${shopStatusLabel[application['status']]})',
     ];
@@ -328,69 +344,110 @@ class _Riders extends StatelessWidget {
     showPhoto(context, url);
   }
 
+  static Future<(List<Map<String, dynamic>>, List<Map<String, dynamic>>)> _load() async =>
+      (await Api.riders(), await Api.ridersWithoutDocs());
+
   @override
-  Widget build(BuildContext context) => Loader<List<Map<String, dynamic>>>(
-    load: Api.riders,
-    builder: (context, riders, reload) => riders.isEmpty
-        ? const Empty('ยังไม่มีผู้สมัครไรเดอร์')
-        : ListView(
-            children: [
-              for (final r in riders)
-                Card(
-                  margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  child: Padding(
-                    padding: const EdgeInsets.all(12),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          '${r['profiles']?['full_name'] ?? '-'} · ${r['profiles']?['phone'] ?? '-'}',
-                          style: const TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                        Text(
-                          '${r['vehicle_type'] ?? ''} ${r['plate_no'] ?? ''} · พร้อมเพย์ ${r['promptpay_id']}',
-                        ),
-                        Text(
-                          'สถานะ: ${_statusLabel[r['status']]}${r['is_online'] == true ? ' · ออนไลน์' : ''}',
-                        ),
-                        Wrap(
-                          spacing: 8,
-                          children: [
-                            TextButton(
-                              onPressed: () => _showDoc(context, r['id_card_image_url']),
-                              child: const Text('ดูบัตรประชาชน'),
-                            ),
-                            TextButton(
-                              onPressed: () => _showDoc(context, r['photo_url']),
-                              child: const Text('ดูรูปถ่าย'),
-                            ),
-                            if (r['status'] != 'approved')
-                              FilledButton(
-                                onPressed: () async {
-                                  if (await guard(context, () => Api.setRiderStatus(r['id'], 'approved'))) {
-                                    reload();
-                                  }
-                                },
-                                child: const Text('อนุมัติ'),
-                              ),
-                            if (r['status'] != 'suspended')
-                              OutlinedButton(
-                                onPressed: () async {
-                                  if (await guard(context, () => Api.setRiderStatus(r['id'], 'suspended'))) {
-                                    reload();
-                                  }
-                                },
-                                child: const Text('ระงับ'),
-                              ),
-                          ],
-                        ),
-                      ],
+  Widget build(BuildContext context) => Loader<(List<Map<String, dynamic>>, List<Map<String, dynamic>>)>(
+    load: _load,
+    builder: (context, data, reload) {
+      final (riders, noDocs) = data;
+      return riders.isEmpty && noDocs.isEmpty
+          ? const Empty('ยังไม่มีผู้สมัครไรเดอร์')
+          : ListView(
+              children: [
+                if (noDocs.isNotEmpty) ...[
+                  const ListTile(
+                    title: Text('สมัครเป็นไรเดอร์แล้ว แต่ยังไม่ส่งเอกสาร'),
+                    subtitle: Text(
+                      'ให้เข้าแอปแล้วกรอกพร้อมเพย์ ทะเบียนรถ แนบบัตรประชาชนและรูปถ่าย จึงจะอนุมัติได้',
                     ),
                   ),
-                ),
-            ],
-          ),
+                  for (final p in noDocs) _NoDocsTile(p),
+                  const Divider(),
+                ],
+                for (final r in riders)
+                  Card(
+                    margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    child: Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '${r['profiles']?['full_name'] ?? '-'} · ${r['profiles']?['phone'] ?? '-'}',
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          Text(
+                            '${r['vehicle_type'] ?? ''} ${r['plate_no'] ?? ''} · พร้อมเพย์ ${r['promptpay_id']}',
+                          ),
+                          Text(
+                            'สถานะ: ${_statusLabel[r['status']]}${r['is_online'] == true ? ' · ออนไลน์' : ''}',
+                          ),
+                          Wrap(
+                            spacing: 8,
+                            children: [
+                              TextButton(
+                                onPressed: () => _showDoc(context, r['id_card_image_url']),
+                                child: const Text('ดูบัตรประชาชน'),
+                              ),
+                              TextButton(
+                                onPressed: () => _showDoc(context, r['photo_url']),
+                                child: const Text('ดูรูปถ่าย'),
+                              ),
+                              if (r['status'] != 'approved')
+                                FilledButton(
+                                  onPressed: () async {
+                                    if (await guard(context, () => Api.setRiderStatus(r['id'], 'approved'))) {
+                                      reload();
+                                    }
+                                  },
+                                  child: const Text('อนุมัติ'),
+                                ),
+                              if (r['status'] != 'suspended')
+                                OutlinedButton(
+                                  onPressed: () async {
+                                    if (await guard(
+                                      context,
+                                      () => Api.setRiderStatus(r['id'], 'suspended'),
+                                    )) {
+                                      reload();
+                                    }
+                                  },
+                                  child: const Text('ระงับ'),
+                                ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+              ],
+            );
+    },
   );
+}
+
+class _NoDocsTile extends StatelessWidget {
+  const _NoDocsTile(this.p);
+  final Map<String, dynamic> p;
+
+  @override
+  Widget build(BuildContext context) {
+    final phone = p['phone'] as String? ?? '';
+    return ListTile(
+      leading: const CircleAvatar(child: Icon(Icons.two_wheeler)),
+      title: Text(p['full_name'] ?? '-'),
+      subtitle: Text('${phone.isEmpty ? '-' : phoneLabel(phone)} · รอส่งเอกสาร'),
+      trailing: phone.isEmpty
+          ? null
+          : IconButton(
+              tooltip: 'โทรหา',
+              icon: const Icon(Icons.call),
+              onPressed: () => launchUrl(Uri.parse('tel:$phone')),
+            ),
+    );
+  }
 }
 
 // ---------------------------------------------------------------- zones

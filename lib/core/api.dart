@@ -380,6 +380,18 @@ class Api {
   static Future<List<Map<String, dynamic>>> riders() =>
       _db.from('riders').select('*, profiles(full_name, phone)').order('created_at', ascending: false);
 
+  /// Admin only (RLS). Members who picked "rider" at sign-up but have not sent their documents yet.
+  static Future<List<Map<String, dynamic>>> ridersWithoutDocs() async {
+    final rows = await _db
+        .from('profiles')
+        .select('id, full_name, phone, created_at, riders!riders_id_fkey(id)')
+        .eq('signup_as', 'rider')
+        .order('created_at', ascending: false);
+    return rows
+        .where((r) => r['riders'] == null || (r['riders'] is List && (r['riders'] as List).isEmpty))
+        .toList();
+  }
+
   static Future<void> setRiderStatus(String id, String status) =>
       _db.from('riders').update({'status': status}).eq('id', id);
 
@@ -397,7 +409,7 @@ class Api {
   static Future<List<Map<String, dynamic>>> members() => _db
       .from('profiles')
       .select(
-        'id, full_name, phone, role, created_at, riders!riders_id_fkey(status), shops!shops_owner_id_fkey(id, status)',
+        'id, full_name, phone, role, signup_as, created_at, riders!riders_id_fkey(status), shops!shops_owner_id_fkey(id, status)',
       )
       .order('created_at', ascending: false)
       .limit(500);
